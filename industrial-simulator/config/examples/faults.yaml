@@ -1,0 +1,40 @@
+simulator:
+  updateIntervalMs: 1000
+
+protocols:
+  - id: modbus-main
+    type: modbus-tcp
+    host: 0.0.0.0
+    port: 5021
+
+devices:
+  - deviceId: tank-sensor-01
+    deviceType: tank-sensor
+    protocol:
+      type: modbus-tcp
+      serverId: modbus-main
+      slaveId: 1
+    parameters:
+      - parameterId: level
+        dataType: float32
+        unit: percent
+        generator:
+          type: static
+          value: 72.5
+        faults:
+          - type: noise
+            amplitude: 0.5
+        mapping:
+          registerType: holding-register
+          address: 0
+      - parameterId: temperature
+        dataType: float32
+        unit: C
+        generator:
+          type: static
+          value: 34
+        faults:
+          - type: freeze
+        mapping:
+          registerType: input-register
+          address: 0

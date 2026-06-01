@@ -1,0 +1,84 @@
+simulator:
+  updateIntervalMs: 1000
+  hotReload: true
+  scriptGeneratorsEnabled: false
+  healthPort: 8088
+
+protocols:
+  - id: modbus-main
+    type: modbus-tcp
+    host: 0.0.0.0
+    port: 5020
+    byteOrder: big-endian
+    wordOrder: big-endian
+
+devices:
+  - deviceId: main-engine-01
+    deviceType: engine
+    displayName: Main Engine 01
+    protocol:
+      type: modbus-tcp
+      serverId: modbus-main
+      slaveId: 1
+    parameters:
+      - parameterId: rpm
+        displayName: Engine RPM
+        dataType: float32
+        unit: rpm
+        generator:
+          type: linear-ramp
+          min: 50
+          max: 100
+          step: 1
+        mapping:
+          registerType: holding-register
+          address: 0
+      - parameterId: load
+        displayName: Engine Load
+        dataType: uint16
+        unit: percent
+        generator:
+          type: sine-wave
+          amplitude: 20
+          offset: 60
+          periodSeconds: 60
+        mapping:
+          registerType: input-register
+          address: 0
+      - parameterId: running
+        displayName: Running
+        dataType: boolean
+        generator:
+          type: static
+          value: true
+        mapping:
+          registerType: coil
+          address: 0
+
+  - deviceId: power-meter-01
+    deviceType: power-meter
+    protocol:
+      type: modbus-tcp
+      serverId: modbus-main
+      slaveId: 2
+    parameters:
+      - parameterId: voltage
+        dataType: float32
+        unit: V
+        generator:
+          type: random
+          min: 220
+          max: 240
+        mapping:
+          registerType: holding-register
+          address: 0
+      - parameterId: breaker_closed
+        dataType: boolean
+        generator:
+          type: square-wave
+          low: 0
+          high: 1
+          periodSeconds: 20
+        mapping:
+          registerType: discrete-input
+          address: 0

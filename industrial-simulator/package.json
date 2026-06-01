@@ -1,0 +1,39 @@
+{
+  "name": "industrial-simulator",
+  "version": "0.1.0",
+  "description": "Configuration-driven industrial device simulator with protocol plugin support.",
+  "type": "module",
+  "bin": {
+    "industrial-simulator": "./dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli/index.js --config config/examples/modbus-devices.yaml",
+    "dev": "tsx src/cli/index.ts --config config/examples/modbus-devices.yaml --watch",
+    "validate-config": "tsx src/cli/index.ts --config config/examples/modbus-devices.yaml --validate-config",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "chokidar": "^4.0.3",
+    "tsx": "^4.20.3",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "eslint": "^9.18.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  }
+}
