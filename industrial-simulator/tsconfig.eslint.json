@@ -4,6 +4,6 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "*.js", "*.cjs"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "*.js", "*.cjs", "vite.config.ts"],
   "exclude": []
 }

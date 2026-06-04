@@ -6,7 +6,7 @@ import type { ProtocolPlugin, ProtocolServer } from '../protocols/core/protocol-
 import { modbusTcpPlugin } from '../protocols/modbus-tcp/plugin.js';
 import { DeviceRegistry } from '../devices/device-registry.js';
 import { loadConfig } from '../config/loader.js';
-import type { RuntimeStats, SimulatorConfig } from '../domain/types.js';
+import type { ParameterValue, RuntimeStats, SimulatorConfig } from '../domain/types.js';
 import { ParameterRegistry } from '../parameters/parameter-registry.js';
 import { SimulationEngine } from '../simulation/simulation-engine.js';
 
@@ -63,6 +63,14 @@ export class SimulatorRuntime {
       ticks: engineStats.ticks,
       lastTickDurationMs: engineStats.lastTickDurationMs
     };
+  }
+
+  listValues(): ParameterValue[] {
+    return this.parameterRegistry.listValues();
+  }
+
+  getConfig(): SimulatorConfig | undefined {
+    return this.config;
   }
 
   private async applyConfig(config: SimulatorConfig): Promise<void> {

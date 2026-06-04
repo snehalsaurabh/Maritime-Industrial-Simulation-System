@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Configuration-driven industrial device simulator with protocol plugin support.",
   "type": "module",
+  "main": "./dist/electron/main.js",
   "bin": {
     "industrial-simulator": "./dist/cli/index.js"
   },
@@ -10,19 +11,34 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run build:runtime && npm run build:studio",
+    "build:runtime": "tsc -p tsconfig.json",
+    "build:studio": "vite build",
     "start": "node dist/cli/index.js --config config/examples/modbus-devices.yaml",
     "dev": "tsx src/cli/index.ts --config config/examples/modbus-devices.yaml --watch",
+    "studio": "npm run build && electron dist/electron/main.js",
+    "studio:dev": "concurrently -k \"vite --host 127.0.0.1\" \"tsc -p tsconfig.json --watch --preserveWatchOutput\" \"wait-on http://127.0.0.1:5173 dist/electron/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron dist/electron/main.js\"",
     "validate-config": "tsx src/cli/index.ts --config config/examples/modbus-devices.yaml --validate-config",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "chokidar": "^4.0.3",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^42.3.3",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tsx": "^4.20.3",
+    "vite": "^8.0.16",
+    "wait-on": "^9.0.10",
     "yaml": "^2.7.0"
   },
   "devDependencies": {
