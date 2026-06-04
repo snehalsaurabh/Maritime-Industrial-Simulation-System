@@ -1,3 +1,8 @@
+## Disclaimer: 
+This repository is an independent project. It does not contain proprietary information, intellectual property, confidential materials, or code from any employer or client. Any resemblance to real-world systems is purely for simulation and educational purposes. No IP was harmed in the making of this project.
+
+The implementation is based solely on publicly available information and original work.
+
 # Industrial Simulator
 
 Configuration-driven industrial device simulator for development, QA, protocol validation, adapter validation, load testing, demonstrations, and digital twin scenarios.
