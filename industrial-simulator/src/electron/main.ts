@@ -18,9 +18,18 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-gpu-compositing');
-app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
+app.commandLine.appendSwitch(
+  'disable-features',
+  'VizDisplayCompositor,NetworkServiceSandbox'
+);
 app.disableHardwareAcceleration();
-app.setPath('userData', join(process.cwd(), '.studio-data'));
+const studioProjectDir = join(process.cwd(), '.studio-data');
+if (process.platform === 'win32') {
+  // Chromium's network sandbox often cannot ACL-cache inside repo folders on Windows.
+  app.setPath('userData', join(app.getPath('appData'), 'industrial-simulator-studio'));
+} else {
+  app.setPath('userData', studioProjectDir);
+}
 
 let mainWindow: BrowserWindow | undefined;
 let runtime: SimulatorRuntime | undefined;
@@ -61,11 +70,11 @@ async function createWindow(): Promise<void> {
 }
 
 function projectPath(): string {
-  return join(app.getPath('userData'), 'studio-project.json');
+  return join(studioProjectDir, 'studio-project.json');
 }
 
 function exportedConfigPath(): string {
-  return join(app.getPath('userData'), 'runtime-config.yaml');
+  return join(studioProjectDir, 'runtime-config.yaml');
 }
 
 async function loadProject(): Promise<StudioProject> {
