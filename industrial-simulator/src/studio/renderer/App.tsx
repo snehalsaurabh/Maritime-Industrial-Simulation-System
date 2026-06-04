@@ -41,6 +41,14 @@ const generatorTypes: GeneratorDefinition['type'][] = [
   'sawtooth'
 ];
 const faultTypes: FaultDefinition['type'][] = ['freeze', 'timeout', 'drift', 'spike', 'noise', 'offline'];
+const fallbackApi = {
+  loadProject: async () => createDefaultStudioProject(),
+  saveProject: async () => ({ savedAt: new Date().toISOString() }),
+  exportConfig: async () => ({ configPath: 'renderer-fallback' }),
+  startSimulator: async () => emptySnapshot(createDefaultStudioProject(), true),
+  stopSimulator: async () => emptySnapshot(createDefaultStudioProject(), false),
+  getRuntimeSnapshot: async (project: StudioProject) => emptySnapshot(project, false)
+};
 
 export function App(): JSX.Element {
   const [project, setProject] = useState<StudioProject>(() => createDefaultStudioProject());
@@ -60,17 +68,19 @@ export function App(): JSX.Element {
   );
 
   useEffect(() => {
-    void window.studioApi.loadProject().then((loaded) => {
+    void api().loadProject().then((loaded) => {
       setProject(loaded);
       setSelectedDeviceId(loaded.devices[0]?.deviceId ?? '');
       setSelectedParameterId(loaded.devices[0]?.parameters[0]?.parameterId ?? '');
       setStatus(`Loaded ${loaded.devices.length} device definition(s)`);
+    }).catch((error: unknown) => {
+      setStatus(`Project load failed: ${error instanceof Error ? error.message : String(error)}`);
     });
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void window.studioApi.getRuntimeSnapshot(project).then(setSnapshot);
+      void api().getRuntimeSnapshot(project).then(setSnapshot).catch(() => undefined);
     }, 1000);
     return () => window.clearInterval(timer);
   }, [project]);
@@ -103,23 +113,23 @@ export function App(): JSX.Element {
   }
 
   async function saveProject(): Promise<void> {
-    const result = await window.studioApi.saveProject(project);
+    const result = await api().saveProject(project);
     setStatus(`Saved project at ${new Date(result.savedAt).toLocaleTimeString()}`);
   }
 
   async function exportConfig(): Promise<void> {
-    const result = await window.studioApi.exportConfig(project);
+    const result = await api().exportConfig(project);
     setStatus(`Exported runtime config to ${result.configPath}`);
   }
 
   async function startSimulator(): Promise<void> {
-    const nextSnapshot = await window.studioApi.startSimulator(project);
+    const nextSnapshot = await api().startSimulator(project);
     setSnapshot(nextSnapshot);
     setStatus(`Simulator running from ${nextSnapshot.configPath ?? 'generated config'}`);
   }
 
   async function stopSimulator(): Promise<void> {
-    setSnapshot(await window.studioApi.stopSimulator());
+    setSnapshot(await api().stopSimulator());
     setStatus('Simulator stopped');
   }
 
@@ -252,6 +262,26 @@ export function App(): JSX.Element {
       <footer>{status}</footer>
     </main>
   );
+}
+
+function api(): typeof window.studioApi {
+  return window.studioApi ?? fallbackApi;
+}
+
+function emptySnapshot(project: StudioProject, running: boolean) {
+  return {
+    running,
+    stats: {
+      devices: project.devices.length,
+      parameters: project.devices.reduce((count, device) => count + device.parameters.length, 0),
+      ticks: 0,
+      lastTickDurationMs: 0,
+      protocolRequests: 0,
+      protocolErrors: 0
+    },
+    values: [],
+    registers: []
+  };
 }
 
 function DeviceWorkspace(props: {

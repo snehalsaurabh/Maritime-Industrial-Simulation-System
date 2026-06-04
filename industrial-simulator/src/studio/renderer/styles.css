@@ -341,3 +341,17 @@ footer {
   font-size: 12px;
   min-height: 42px;
 }
+
+.studio-fallback {
+  color: #e7edf0;
+  padding: 24px;
+}
+
+.studio-fallback pre {
+  background: #0f1a20;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: #ffbd4a;
+  overflow: auto;
+  padding: 12px;
+}

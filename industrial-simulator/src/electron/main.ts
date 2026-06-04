@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { createServer, type Server } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stringify } from 'yaml';
 import { validateConfig } from '../config/loader.js';
@@ -15,10 +16,16 @@ import {
 } from '../studio/shared/studio-types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
+app.disableHardwareAcceleration();
+app.setPath('userData', join(process.cwd(), '.studio-data'));
 
 let mainWindow: BrowserWindow | undefined;
 let runtime: SimulatorRuntime | undefined;
 let runtimeConfigPath: string | undefined;
+let rendererServer: Server | undefined;
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
@@ -36,13 +43,21 @@ async function createWindow(): Promise<void> {
   });
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+  mainWindow.webContents.on('console-message', (_event, _level, message) => {
+    console.log(`[studio renderer] ${message}`);
+  });
+  mainWindow.webContents.on('did-fail-load', (_event, _errorCode, errorDescription, validatedUrl) => {
+    console.error(`[studio load failed] ${validatedUrl}: ${errorDescription}`);
+  });
+
   if (devServerUrl) {
     await mainWindow.loadURL(devServerUrl);
     mainWindow.webContents.openDevTools({ mode: 'detach' });
     return;
   }
 
-  await mainWindow.loadFile(join(__dirname, '../studio/index.html'));
+  const rendererUrl = await startRendererServer();
+  await mainWindow.loadURL(rendererUrl);
 }
 
 function projectPath(): string {
@@ -198,4 +213,65 @@ app.on('before-quit', () => {
   if (runtime) {
     void runtime.stop();
   }
+  rendererServer?.close();
 });
+
+async function startRendererServer(): Promise<string> {
+  if (rendererServer) {
+    const address = rendererServer.address();
+    if (address && typeof address === 'object') {
+      return `http://127.0.0.1:${address.port}/`;
+    }
+  }
+
+  const rendererRoot = resolve(__dirname, '../studio/renderer');
+  rendererServer = createServer((request, response) => {
+    const rawPath = decodeURIComponent(request.url?.split('?')[0] ?? '/');
+    const normalizedPath = normalize(rawPath === '/' ? '/index.html' : rawPath).replace(/^[/\\]+/, '');
+    const filePath = resolve(rendererRoot, normalizedPath);
+    if (!filePath.startsWith(rendererRoot)) {
+      response.writeHead(403);
+      response.end();
+      return;
+    }
+
+    readFile(filePath)
+      .then((content) => {
+        response.writeHead(200, { 'content-type': contentType(filePath) });
+        response.end(content);
+      })
+      .catch(() => {
+        response.writeHead(404);
+        response.end();
+      });
+  });
+
+  await new Promise<void>((resolveServer, reject) => {
+    rendererServer?.once('error', reject);
+    rendererServer?.listen(0, '127.0.0.1', () => {
+      rendererServer?.off('error', reject);
+      resolveServer();
+    });
+  });
+
+  const address = rendererServer.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Renderer server did not start on a TCP port');
+  }
+  return `http://127.0.0.1:${address.port}/`;
+}
+
+function contentType(filePath: string): string {
+  switch (extname(filePath)) {
+    case '.html':
+      return 'text/html';
+    case '.js':
+      return 'text/javascript';
+    case '.css':
+      return 'text/css';
+    case '.svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
+  }
+}
