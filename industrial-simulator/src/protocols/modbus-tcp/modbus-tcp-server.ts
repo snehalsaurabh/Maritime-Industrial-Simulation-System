@@ -1,6 +1,6 @@
 import { createServer, type Server, type Socket } from 'node:net';
 import type { RegisterType } from '../../domain/types.js';
-import type { ParameterStore } from '../../simulation/parameter-store.js';
+import type { ParameterRegistry } from '../../parameters/parameter-registry.js';
 import type { ProtocolServerConfig } from '../../domain/types.js';
 import type { ProtocolServer } from '../core/protocol-server.js';
 import { encodeBoolean, encodeRegisters, registerLength } from './value-codec.js';
@@ -16,7 +16,7 @@ export class ModbusTcpServer implements ProtocolServer {
 
   constructor(
     private readonly config: ProtocolServerConfig,
-    private readonly parameterStore: ParameterStore,
+    private readonly parameterRegistry: ParameterRegistry,
     private readonly callbacks: { onRequest?: () => void; onError?: () => void } = {}
   ) {}
 
@@ -165,7 +165,7 @@ export class ModbusTcpServer implements ProtocolServer {
 
   private buildRegisterMap(unitId: number, registerType: RegisterType): Map<number, number> {
     const map = new Map<number, number>();
-    const lookups = this.parameterStore.listMapped(this.config.id, unitId, registerType);
+    const lookups = this.parameterRegistry.listMapped(this.config.id, unitId, registerType);
     for (const lookup of lookups) {
       if (lookup.value.quality === 'offline' || lookup.value.quality === 'timeout') {
         throw new ModbusException(11);
@@ -184,7 +184,7 @@ export class ModbusTcpServer implements ProtocolServer {
 
   private buildBitMap(unitId: number, registerType: RegisterType): Map<number, boolean> {
     const map = new Map<number, boolean>();
-    const lookups = this.parameterStore.listMapped(this.config.id, unitId, registerType);
+    const lookups = this.parameterRegistry.listMapped(this.config.id, unitId, registerType);
     for (const lookup of lookups) {
       if (lookup.value.quality === 'offline' || lookup.value.quality === 'timeout') {
         throw new ModbusException(11);

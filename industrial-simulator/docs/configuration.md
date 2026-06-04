@@ -8,6 +8,8 @@ Top-level sections:
 - `protocols`: protocol server instances.
 - `devices`: configured industrial devices and their parameters.
 
+The runtime currently uses one JSON/YAML file. Device Definition Studio style exports such as separate `device.json`, `profile.json`, and `scenario.json` can be normalized into this shape by a future loader extension.
+
 Register mappings are always explicit. No Modbus address is hardcoded in source code.
 
 Script generators are disabled by default and only support arithmetic assignments to `value`, for example:

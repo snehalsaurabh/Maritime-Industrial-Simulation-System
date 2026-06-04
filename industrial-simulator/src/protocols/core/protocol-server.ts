@@ -1,5 +1,5 @@
 import type { ProtocolServerConfig, SimulatorConfig } from '../../domain/types.js';
-import type { ParameterStore } from '../../simulation/parameter-store.js';
+import type { ParameterRegistry } from '../../parameters/parameter-registry.js';
 
 export interface ProtocolServer {
   start(): Promise<void>;
@@ -14,7 +14,7 @@ export interface ProtocolPlugin {
 export interface ProtocolPluginInput {
   simulatorConfig: SimulatorConfig;
   protocolConfigs: ProtocolServerConfig[];
-  parameterStore: ParameterStore;
+  parameterRegistry: ParameterRegistry;
   onRequest?: () => void;
   onError?: () => void;
 }

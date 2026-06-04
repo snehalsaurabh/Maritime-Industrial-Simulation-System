@@ -1,9 +1,9 @@
 import { dirname } from 'node:path';
 import type { DeviceDefinition, ParameterPrimitive } from '../domain/types.js';
 import { FaultEngine } from '../faults/fault-engine.js';
+import type { ParameterRegistry } from '../parameters/parameter-registry.js';
 import type { SimulationGenerator } from './generators.js';
 import { createGenerator } from './generators.js';
-import type { ParameterStore } from './parameter-store.js';
 
 export class SimulationEngine {
   private readonly generators = new Map<string, SimulationGenerator>();
@@ -16,13 +16,13 @@ export class SimulationEngine {
   private devices: DeviceDefinition[] = [];
 
   constructor(
-    private readonly parameterStore: ParameterStore,
+    private readonly parameterRegistry: ParameterRegistry,
     private readonly options: { updateIntervalMs: number; configPath: string; scriptGeneratorsEnabled: boolean }
   ) {}
 
   replaceDevices(devices: DeviceDefinition[]): void {
     this.devices = devices;
-    this.parameterStore.replaceDefinitions(devices);
+    this.parameterRegistry.replaceDefinitions(devices);
     this.generators.clear();
     const configDir = dirname(this.options.configPath);
     for (const device of devices) {
@@ -87,7 +87,7 @@ export class SimulationEngine {
           [...(device.faults ?? []), ...(parameter.faults ?? [])]
         );
         this.previousValues.set(id, value.value);
-        this.parameterStore.setValue(value);
+        this.parameterRegistry.setValue(value);
       }
     }
 

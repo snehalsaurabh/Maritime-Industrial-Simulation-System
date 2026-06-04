@@ -16,3 +16,5 @@ Unmapped addresses return exception `0x02`. Offline and timeout faults return ex
 ## Future Protocols
 
 Future protocols should be implemented as plugins under `src/protocols/<protocol-name>` and should not modify simulation engine internals.
+
+NMEA0183 is the preferred next target after the runtime refactor. It should consume the same protocol-facing values as Modbus TCP, but expose them as real serial or TCP text sentences instead of register maps.

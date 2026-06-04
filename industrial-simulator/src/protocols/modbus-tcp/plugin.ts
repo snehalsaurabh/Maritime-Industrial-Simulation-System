@@ -8,7 +8,7 @@ export const modbusTcpPlugin: ProtocolPlugin = {
       .filter((config) => config.type === 'modbus-tcp')
       .map(
         (config) =>
-          new ModbusTcpServer(config, input.parameterStore, {
+          new ModbusTcpServer(config, input.parameterRegistry, {
             onRequest: input.onRequest,
             onError: input.onError
           })

@@ -7,13 +7,13 @@ import { modbusTcpPlugin } from '../protocols/modbus-tcp/plugin.js';
 import { DeviceRegistry } from '../devices/device-registry.js';
 import { loadConfig } from '../config/loader.js';
 import type { RuntimeStats, SimulatorConfig } from '../domain/types.js';
-import { ParameterStore } from '../simulation/parameter-store.js';
+import { ParameterRegistry } from '../parameters/parameter-registry.js';
 import { SimulationEngine } from '../simulation/simulation-engine.js';
 
 export class SimulatorRuntime {
   private readonly plugins: ProtocolPlugin[] = [modbusTcpPlugin];
   private readonly deviceRegistry = new DeviceRegistry();
-  private readonly parameterStore = new ParameterStore();
+  private readonly parameterRegistry = new ParameterRegistry();
   private protocolServers: ProtocolServer[] = [];
   private simulationEngine: SimulationEngine | undefined;
   private config: SimulatorConfig | undefined;
@@ -72,7 +72,7 @@ export class SimulatorRuntime {
     this.stats.parameters = config.devices.reduce((count, device) => count + device.parameters.length, 0);
 
     this.simulationEngine?.stop();
-    this.simulationEngine = new SimulationEngine(this.parameterStore, {
+    this.simulationEngine = new SimulationEngine(this.parameterRegistry, {
       updateIntervalMs: config.simulator?.updateIntervalMs ?? 1000,
       configPath: this.configPath,
       scriptGeneratorsEnabled: config.simulator?.scriptGeneratorsEnabled ?? false
@@ -87,7 +87,7 @@ export class SimulatorRuntime {
       plugin.createServers({
         simulatorConfig: config,
         protocolConfigs: config.protocols,
-        parameterStore: this.parameterStore,
+        parameterRegistry: this.parameterRegistry,
         onRequest: () => (this.stats.protocolRequests += 1),
         onError: () => (this.stats.protocolErrors += 1)
       })
