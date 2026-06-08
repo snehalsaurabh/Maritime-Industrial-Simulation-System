@@ -195,7 +195,7 @@ label span {
 .editor-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: 270px minmax(340px, 0.9fr) 300px minmax(420px, 1.2fr);
+  grid-template-columns: 320px minmax(320px, 0.9fr) 300px minmax(400px, 1.2fr);
   min-height: 0;
   padding: 14px;
 }
@@ -239,6 +239,13 @@ label span {
 .pane-title-actions {
   display: flex;
   gap: 8px;
+}
+
+.pane-title-actions button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  border-radius: 4px;
 }
 
 .compact-list {

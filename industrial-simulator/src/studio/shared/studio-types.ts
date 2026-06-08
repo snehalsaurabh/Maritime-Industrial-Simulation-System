@@ -278,26 +278,37 @@ export function normalizeStudioProject(project: StudioProject): StudioProject {
 }
 
 export function compileSimulatorConfig(project: StudioProject): SimulatorConfig {
+  const activeScenarios = project.scenarios.filter((s) => s.enabled);
+  const activeFaults = activeScenarios.flatMap((s) =>
+    s.faults.map((f) => ({ ...f, enabled: true }))
+  );
+
   return {
     simulator: project.simulator,
     protocols: project.protocols,
-    devices: project.devices.map((device) => ({
-      deviceId: device.deviceId,
-      deviceType: device.deviceType,
-      displayName: device.displayName,
-      updateIntervalMs: device.updateIntervalMs,
-      protocol: device.protocol,
-      faults: device.faults,
-      parameters: device.parameters.map((parameter) => ({
-        parameterId: parameter.parameterId,
-        displayName: parameter.displayName,
-        dataType: parameter.dataType,
-        unit: parameter.unit,
-        generator: parameter.generator,
-        mapping: parameter.mapping,
-        nmeaMapping: parameter.nmeaMapping,
-        faults: parameter.faults
-      }))
-    }))
+    devices: project.devices.map((device) => {
+      const deviceFaults = [
+        ...(device.faults ?? []),
+        ...activeFaults
+      ];
+      return {
+        deviceId: device.deviceId,
+        deviceType: device.deviceType,
+        displayName: device.displayName,
+        updateIntervalMs: device.updateIntervalMs,
+        protocol: device.protocol,
+        faults: deviceFaults.length > 0 ? deviceFaults : undefined,
+        parameters: device.parameters.map((parameter) => ({
+          parameterId: parameter.parameterId,
+          displayName: parameter.displayName,
+          dataType: parameter.dataType,
+          unit: parameter.unit,
+          generator: parameter.generator,
+          mapping: parameter.mapping,
+          nmeaMapping: parameter.nmeaMapping,
+          faults: parameter.faults
+        }))
+      };
+    })
   };
 }
