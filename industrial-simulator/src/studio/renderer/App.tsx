@@ -9,6 +9,7 @@ import {
   Save,
   Settings,
   Square,
+  Trash2,
   Waves
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -26,7 +27,13 @@ import type {
   StudioProject,
   StudioRuntimeSnapshot
 } from '../shared/studio-types.js';
-import { createDefaultStudioProject } from '../shared/studio-types.js';
+import {
+  applyProtocolServerChange,
+  createDefaultStudioProject,
+  createModbusParameter,
+  createNmeaDevice,
+  isNmeaDevice
+} from '../shared/studio-types.js';
 
 type Tab = 'device' | 'profiles' | 'faults' | 'runtime';
 
@@ -41,6 +48,7 @@ const generatorTypes: GeneratorDefinition['type'][] = [
   'sawtooth'
 ];
 const faultTypes: FaultDefinition['type'][] = ['freeze', 'timeout', 'drift', 'spike', 'noise', 'offline'];
+const talkerIds = ['GP', 'GN', 'GL'];
 const fallbackApi = {
   loadProject: async () => createDefaultStudioProject(),
   saveProject: async () => ({ savedAt: new Date().toISOString() }),
@@ -133,29 +141,75 @@ export function App(): JSX.Element {
     setStatus('Simulator stopped');
   }
 
-  function addDevice(): void {
+  function addModbusDevice(): void {
     const index = project.devices.length + 1;
     const deviceId = `device-${index.toString().padStart(2, '0')}`;
+    const modbusServer = project.protocols.find((protocol) => protocol.type === 'modbus-tcp')?.id ?? 'modbus-main';
     updateProject((draft) => {
       draft.devices.push({
         deviceId,
         deviceType: 'generic-device',
         displayName: `Device ${index}`,
-        protocol: { type: 'modbus-tcp', serverId: draft.protocols[0]?.id ?? 'modbus-main', slaveId: index },
-        parameters: [createParameter('value', 0)]
+        protocol: { type: 'modbus-tcp', serverId: modbusServer, slaveId: index },
+        parameters: [createModbusParameter('value', 0)]
       });
     });
     setSelectedDeviceId(deviceId);
     setSelectedParameterId('value');
   }
 
+  function addNmeaDevice(): void {
+    const index = project.devices.length + 1;
+    const deviceId = `gps-${index.toString().padStart(2, '0')}`;
+    const nmeaServer = project.protocols.find((protocol) => protocol.type === 'nmea0183')?.id ?? 'nmea-gps';
+    const device = createNmeaDevice(deviceId, `GPS Receiver ${index}`, nmeaServer);
+    updateProject((draft) => {
+      draft.devices.push(device);
+    });
+    setSelectedDeviceId(deviceId);
+    setSelectedParameterId(device.parameters[0]?.parameterId ?? 'gga.utcTime');
+  }
+
+  function removeDevice(deviceId: string): void {
+    if (project.devices.length <= 1) {
+      return;
+    }
+    const remaining = project.devices.filter((device) => device.deviceId !== deviceId);
+    updateProject((draft) => {
+      draft.devices = draft.devices.filter((device) => device.deviceId !== deviceId);
+    });
+    if (selectedDeviceId === deviceId) {
+      setSelectedDeviceId(remaining[0]?.deviceId ?? '');
+      setSelectedParameterId(remaining[0]?.parameters[0]?.parameterId ?? '');
+    }
+  }
+
   function addParameter(): void {
-    const address = selectedDevice?.parameters.length ?? 0;
-    const parameter = createParameter(`parameter-${address + 1}`, address * 2);
+    if (!selectedDevice || isNmeaDevice(selectedDevice, project.protocols)) {
+      return;
+    }
+    const address = selectedDevice.parameters.length;
+    const parameter = createModbusParameter(`parameter-${address + 1}`, address * 2);
     updateDevice((device) => {
       device.parameters.push(parameter);
     });
     setSelectedParameterId(parameter.parameterId);
+  }
+
+  function removeParameter(parameterId: string): void {
+    if (!selectedDevice || isNmeaDevice(selectedDevice, project.protocols)) {
+      return;
+    }
+    if (selectedDevice.parameters.length <= 1) {
+      return;
+    }
+    const remaining = selectedDevice.parameters.filter((parameter) => parameter.parameterId !== parameterId);
+    updateDevice((device) => {
+      device.parameters = device.parameters.filter((parameter) => parameter.parameterId !== parameterId);
+    });
+    if (selectedParameterId === parameterId) {
+      setSelectedParameterId(remaining[0]?.parameterId ?? '');
+    }
   }
 
   function addProfile(): void {
@@ -251,8 +305,11 @@ export function App(): JSX.Element {
             setSelectedParameterId={setSelectedParameterId}
             updateDevice={updateDevice}
             updateParameter={updateParameter}
-            addDevice={addDevice}
+            addModbusDevice={addModbusDevice}
+            addNmeaDevice={addNmeaDevice}
+            removeDevice={removeDevice}
             addParameter={addParameter}
+            removeParameter={removeParameter}
           />
         )}
         {tab === 'profiles' && <ProfilesWorkspace project={project} updateProject={updateProject} addProfile={addProfile} />}
@@ -280,7 +337,8 @@ function emptySnapshot(project: StudioProject, running: boolean) {
       protocolErrors: 0
     },
     values: [],
-    registers: []
+    registers: [],
+    sentences: []
   };
 }
 
@@ -294,8 +352,11 @@ function DeviceWorkspace(props: {
   setSelectedParameterId: (value: string) => void;
   updateDevice: (mutator: (device: StudioDeviceDefinition) => void) => void;
   updateParameter: (mutator: (parameter: StudioParameterDefinition) => void) => void;
-  addDevice: () => void;
+  addModbusDevice: () => void;
+  addNmeaDevice: () => void;
+  removeDevice: (deviceId: string) => void;
   addParameter: () => void;
+  removeParameter: (parameterId: string) => void;
 }): JSX.Element {
   const {
     project,
@@ -307,27 +368,59 @@ function DeviceWorkspace(props: {
     setSelectedParameterId,
     updateDevice,
     updateParameter,
-    addDevice,
-    addParameter
+    addModbusDevice,
+    addNmeaDevice,
+    removeDevice,
+    addParameter,
+    removeParameter
   } = props;
+
+  const nmeaSelected = selectedDevice ? isNmeaDevice(selectedDevice, project.protocols) : false;
 
   return (
     <div className="editor-grid">
       <section className="pane compact-list">
-        <PaneTitle icon={<Database size={18} />} title="Device Management" action="Add" onAction={addDevice} />
-        {project.devices.map((device) => (
-          <button
-            key={device.deviceId}
-            className={device.deviceId === selectedDeviceId ? 'list-row active' : 'list-row'}
-            onClick={() => {
-              setSelectedDeviceId(device.deviceId);
-              setSelectedParameterId(device.parameters[0]?.parameterId ?? '');
-            }}
-          >
-            <strong>{device.displayName || device.deviceId}</strong>
-            <span>{device.protocol.serverId} / slave {device.protocol.slaveId ?? 1}</span>
-          </button>
-        ))}
+        <PaneTitle
+          icon={<Database size={18} />}
+          title="Device Management"
+          actions={[
+            { label: 'Modbus', onAction: addModbusDevice },
+            { label: 'NMEA GPS', onAction: addNmeaDevice }
+          ]}
+        />
+        <div className="list-scroll">
+          {project.devices.map((device) => {
+            const nmea = isNmeaDevice(device, project.protocols);
+            const subtitle = nmea
+              ? `${device.protocol.serverId} / NMEA`
+              : `${device.protocol.serverId} / slave ${device.protocol.slaveId ?? 1}`;
+            return (
+              <div
+                key={device.deviceId}
+                className={device.deviceId === selectedDeviceId ? 'list-row-item active' : 'list-row-item'}
+              >
+                <button
+                  className="list-row"
+                  onClick={() => {
+                    setSelectedDeviceId(device.deviceId);
+                    setSelectedParameterId(device.parameters[0]?.parameterId ?? '');
+                  }}
+                >
+                  <strong>{device.displayName || device.deviceId}</strong>
+                  <span>{subtitle}</span>
+                </button>
+                <button
+                  className="list-row-delete"
+                  title="Remove device"
+                  disabled={project.devices.length <= 1}
+                  onClick={() => removeDevice(device.deviceId)}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="pane form-pane">
@@ -341,50 +434,106 @@ function DeviceWorkspace(props: {
             }} />
             <TextField label="Display Name" value={selectedDevice.displayName ?? ''} onChange={(value) => updateDevice((device) => { device.displayName = value; })} />
             <TextField label="Device Type" value={selectedDevice.deviceType ?? ''} onChange={(value) => updateDevice((device) => { device.deviceType = slug(value); })} />
-            <SelectField label="Protocol Server" value={selectedDevice.protocol.serverId} options={project.protocols.map((protocol) => protocol.id)} onChange={(value) => updateDevice((device) => { device.protocol.serverId = value; })} />
-            <NumberField label="Slave ID" value={selectedDevice.protocol.slaveId ?? 1} onChange={(value) => updateDevice((device) => { device.protocol.slaveId = value; })} />
+            <SelectField
+              label="Protocol Server"
+              value={selectedDevice.protocol.serverId}
+              options={project.protocols.map((protocol) => protocol.id)}
+              onChange={(value) => updateDevice((device) => applyProtocolServerChange(device, value, project.protocols))}
+            />
+            {nmeaSelected ? (
+              <SelectField
+                label="Talker ID"
+                value={selectedDevice.protocol.talkerId ?? 'GP'}
+                options={talkerIds}
+                onChange={(value) => updateDevice((device) => { device.protocol.talkerId = value; })}
+              />
+            ) : (
+              <NumberField label="Slave ID" value={selectedDevice.protocol.slaveId ?? 1} onChange={(value) => updateDevice((device) => { device.protocol.slaveId = value; })} />
+            )}
             <TextField label="Notes" value={selectedDevice.notes ?? ''} onChange={(value) => updateDevice((device) => { device.notes = value; })} />
           </div>
         )}
       </section>
 
       <section className="pane compact-list">
-        <PaneTitle icon={<ListPlus size={18} />} title="Parameter Management" action="Add" onAction={addParameter} />
-        {selectedDevice?.parameters.map((parameter) => (
-          <button
-            key={parameter.parameterId}
-            className={parameter.parameterId === selectedParameterId ? 'list-row active' : 'list-row'}
-            onClick={() => setSelectedParameterId(parameter.parameterId)}
-          >
-            <strong>{parameter.displayName || parameter.parameterId}</strong>
-            <span>{parameter.dataType} / {parameter.mapping.registerType} @{parameter.mapping.address}</span>
-          </button>
-        ))}
+        <PaneTitle
+          icon={<ListPlus size={18} />}
+          title="Parameter Management"
+          action={nmeaSelected ? undefined : 'Add'}
+          onAction={nmeaSelected ? undefined : addParameter}
+        />
+        <div className="list-scroll">
+          {selectedDevice?.parameters.map((parameter) => {
+            const subtitle = parameter.nmeaMapping
+              ? `${parameter.nmeaMapping.sentence} / ${parameter.nmeaMapping.fieldKey}`
+              : `${parameter.dataType} / ${parameter.mapping?.registerType} @${parameter.mapping?.address}`;
+            return (
+              <div
+                key={parameter.parameterId}
+                className={parameter.parameterId === selectedParameterId ? 'list-row-item active' : 'list-row-item'}
+              >
+                <button className="list-row" onClick={() => setSelectedParameterId(parameter.parameterId)}>
+                  <strong>{parameter.displayName || parameter.parameterId}</strong>
+                  <span>{subtitle}</span>
+                </button>
+                {!nmeaSelected && (
+                  <button
+                    className="list-row-delete"
+                    title="Remove parameter"
+                    disabled={(selectedDevice?.parameters.length ?? 0) <= 1}
+                    onClick={() => removeParameter(parameter.parameterId)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="pane parameter-pane">
         <PaneTitle icon={<Gauge size={18} />} title="Parameter, Mapping, Limits" />
         {selectedParameter && (
-          <>
-            <div className="form-grid">
-              <TextField label="Parameter ID" value={selectedParameter.parameterId} onChange={(value) => {
-                const nextId = slug(value);
-                updateParameter((parameter) => { parameter.parameterId = nextId; });
-                setSelectedParameterId(nextId);
-              }} />
-              <TextField label="Display Name" value={selectedParameter.displayName ?? ''} onChange={(value) => updateParameter((parameter) => { parameter.displayName = value; })} />
-              <SelectField label="Datatype" value={selectedParameter.dataType} options={dataTypes} onChange={(value) => updateParameter((parameter) => { parameter.dataType = value as DataType; })} />
+          <div className="form-grid">
+            {selectedParameter.nmeaMapping ? (
+              <>
+                <ReadOnlyField label="Parameter ID" value={selectedParameter.parameterId} />
+                <ReadOnlyField label="Sentence" value={selectedParameter.nmeaMapping.sentence} />
+                <ReadOnlyField label="Field" value={selectedParameter.nmeaMapping.fieldKey} />
+                {selectedParameter.nmeaMapping.satelliteSlot !== undefined && (
+                  <ReadOnlyField label="Satellite Slot" value={String(selectedParameter.nmeaMapping.satelliteSlot)} />
+                )}
+              </>
+            ) : (
+              <>
+                <TextField label="Parameter ID" value={selectedParameter.parameterId} onChange={(value) => {
+                  const nextId = slug(value);
+                  updateParameter((parameter) => { parameter.parameterId = nextId; });
+                  setSelectedParameterId(nextId);
+                }} />
+                <SelectField label="Datatype" value={selectedParameter.dataType} options={dataTypes} onChange={(value) => updateParameter((parameter) => { parameter.dataType = value as DataType; })} />
+                <SelectField label="Register Type" value={selectedParameter.mapping?.registerType ?? 'holding-register'} options={registerTypes} onChange={(value) => updateParameter((parameter) => {
+                  parameter.mapping = parameter.mapping ?? { registerType: 'holding-register', address: 0 };
+                  parameter.mapping.registerType = value as RegisterType;
+                })} />
+                <NumberField label="Address" value={selectedParameter.mapping?.address ?? 0} onChange={(value) => updateParameter((parameter) => {
+                  parameter.mapping = parameter.mapping ?? { registerType: 'holding-register', address: 0 };
+                  parameter.mapping.address = value;
+                })} />
+              </>
+            )}
+            <TextField label="Display Name" value={selectedParameter.displayName ?? ''} onChange={(value) => updateParameter((parameter) => { parameter.displayName = value; })} />
+            {!selectedParameter.nmeaMapping && (
               <TextField label="Unit" value={selectedParameter.unit ?? ''} onChange={(value) => updateParameter((parameter) => { parameter.unit = value; })} />
-              <NumberField label="Plausible Min" value={selectedParameter.plausibleMin ?? 0} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMin = value; applyLimits(parameter); })} />
-              <NumberField label="Plausible Max" value={selectedParameter.plausibleMax ?? 100} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMax = value; applyLimits(parameter); })} />
-              <SelectField label="Register Type" value={selectedParameter.mapping.registerType} options={registerTypes} onChange={(value) => updateParameter((parameter) => { parameter.mapping.registerType = value as RegisterType; })} />
-              <NumberField label="Address" value={selectedParameter.mapping.address} onChange={(value) => updateParameter((parameter) => { parameter.mapping.address = value; })} />
-              <SelectField label="Generator" value={selectedParameter.generator.type} options={generatorTypes} onChange={(value) => updateParameter((parameter) => { parameter.generator = createGenerator(value as GeneratorDefinition['type'], parameter); })} />
-              <NumberField label="Gen Min / Value" value={generatorNumber(selectedParameter.generator, 'min')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'min', value); })} />
-              <NumberField label="Gen Max / Offset" value={generatorNumber(selectedParameter.generator, 'max')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'max', value); })} />
-              <NumberField label="Step / Period" value={generatorNumber(selectedParameter.generator, 'step')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'step', value); })} />
-            </div>
-          </>
+            )}
+            <NumberField label="Plausible Min" value={selectedParameter.plausibleMin ?? 0} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMin = value; applyLimits(parameter); })} />
+            <NumberField label="Plausible Max" value={selectedParameter.plausibleMax ?? 100} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMax = value; applyLimits(parameter); })} />
+            <SelectField label="Generator" value={selectedParameter.generator.type} options={generatorTypes} onChange={(value) => updateParameter((parameter) => { parameter.generator = createGenerator(value as GeneratorDefinition['type'], parameter); })} />
+            <NumberField label="Gen Min / Value" value={generatorNumber(selectedParameter.generator, 'min')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'min', value); })} />
+            <NumberField label="Gen Max / Offset" value={generatorNumber(selectedParameter.generator, 'max')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'max', value); })} />
+            <NumberField label="Step / Period" value={generatorNumber(selectedParameter.generator, 'step')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'step', value); })} />
+          </div>
         )}
       </section>
     </div>
@@ -449,6 +598,9 @@ function RuntimeWorkspace(props: {
   updateProject: (mutator: (draft: StudioProject) => void) => void;
 }): JSX.Element {
   const snapshot = props.snapshot;
+  const modbusProtocol = props.project.protocols.find((protocol) => protocol.type === 'modbus-tcp');
+  const nmeaProtocol = props.project.protocols.find((protocol) => protocol.type === 'nmea0183');
+
   return (
     <div className="runtime-grid">
       <section className="pane form-pane">
@@ -456,8 +608,22 @@ function RuntimeWorkspace(props: {
         <div className="form-grid">
           <NumberField label="Update Interval" value={props.project.simulator.updateIntervalMs ?? 1000} onChange={(value) => props.updateProject((draft) => { draft.simulator.updateIntervalMs = value; })} />
           <NumberField label="Health Port" value={props.project.simulator.healthPort ?? 8088} onChange={(value) => props.updateProject((draft) => { draft.simulator.healthPort = value; })} />
-          <TextField label="Protocol Host" value={props.project.protocols[0]?.host ?? '127.0.0.1'} onChange={(value) => props.updateProject((draft) => { if (draft.protocols[0]) draft.protocols[0].host = value; })} />
-          <NumberField label="Modbus Port" value={props.project.protocols[0]?.port ?? 5020} onChange={(value) => props.updateProject((draft) => { if (draft.protocols[0]) draft.protocols[0].port = value; })} />
+          <TextField label="Modbus Host" value={modbusProtocol?.host ?? '127.0.0.1'} onChange={(value) => props.updateProject((draft) => {
+            const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
+            if (protocol) protocol.host = value;
+          })} />
+          <NumberField label="Modbus Port" value={modbusProtocol?.port ?? 5020} onChange={(value) => props.updateProject((draft) => {
+            const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
+            if (protocol) protocol.port = value;
+          })} />
+          <TextField label="NMEA Host" value={nmeaProtocol?.host ?? '127.0.0.1'} onChange={(value) => props.updateProject((draft) => {
+            const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
+            if (protocol) protocol.host = value;
+          })} />
+          <NumberField label="NMEA Port" value={nmeaProtocol?.port ?? 10110} onChange={(value) => props.updateProject((draft) => {
+            const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
+            if (protocol) protocol.port = value;
+          })} />
         </div>
       </section>
       <section className="pane table-pane">
@@ -482,15 +648,40 @@ function RuntimeWorkspace(props: {
           ))}
         </div>
       </section>
+      <section className="pane table-pane wide sentence-pane">
+        <PaneTitle icon={<Waves size={18} />} title="Live NMEA Sentence Viewer" />
+        <div className="table">
+          <div className="table-head sentence-grid"><span>Time</span><span>Device</span><span>Type</span><span>Sentence</span></div>
+          {(snapshot?.sentences ?? []).map((row, index) => (
+            <div className="table-row sentence-grid" key={`${row.deviceId}:${row.sentenceType}:${index}`}>
+              <span>{new Date(row.timestamp).toLocaleTimeString()}</span>
+              <span>{row.deviceId}</span>
+              <span>{row.sentenceType}</span>
+              <code className="sentence-line">{row.line}</code>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
 
-function PaneTitle(props: { icon: JSX.Element; title: string; action?: string; onAction?: () => void }): JSX.Element {
+function PaneTitle(props: {
+  icon: JSX.Element;
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  actions?: Array<{ label: string; onAction: () => void }>;
+}): JSX.Element {
   return (
     <div className="pane-title">
       <h2>{props.icon}{props.title}</h2>
-      {props.action && <button onClick={props.onAction}>{props.action}</button>}
+      <div className="pane-title-actions">
+        {props.actions?.map((entry) => (
+          <button key={entry.label} onClick={entry.onAction}>{entry.label}</button>
+        ))}
+        {props.action && <button onClick={props.onAction}>{props.action}</button>}
+      </div>
     </div>
   );
 }
@@ -511,17 +702,8 @@ function SelectField(props: { label: string; value: string; options: string[]; o
   return <label><span>{props.label}</span><select value={props.value} onChange={(event) => props.onChange(event.target.value)}>{props.options.map((option) => <option key={option}>{option}</option>)}</select></label>;
 }
 
-function createParameter(parameterId: string, address: number): StudioParameterDefinition {
-  return {
-    parameterId,
-    displayName: parameterId.replaceAll('-', ' '),
-    dataType: 'float32',
-    unit: '',
-    plausibleMin: 0,
-    plausibleMax: 100,
-    generator: { type: 'random', min: 0, max: 100 },
-    mapping: { registerType: 'holding-register', address }
-  };
+function ReadOnlyField(props: { label: string; value: string }): JSX.Element {
+  return <label><span>{props.label}</span><input value={props.value} readOnly /></label>;
 }
 
 function createGenerator(type: GeneratorDefinition['type'], parameter: StudioParameterDefinition): GeneratorDefinition {

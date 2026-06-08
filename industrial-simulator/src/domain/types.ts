@@ -16,7 +16,15 @@ export type RegisterType =
   | 'coil'
   | 'discrete-input';
 
-export type ProtocolType = 'modbus-tcp' | string;
+export type ProtocolType = 'modbus-tcp' | 'nmea0183' | string;
+
+export type NmeaSentenceType = 'GGA' | 'RMC' | 'GSV';
+
+export interface NmeaFieldMapping {
+  sentence: NmeaSentenceType;
+  fieldKey: string;
+  satelliteSlot?: number;
+}
 
 export type ParameterPrimitive = number | boolean | string | bigint;
 
@@ -38,6 +46,8 @@ export interface ProtocolServerConfig {
   port?: number;
   byteOrder?: 'big-endian' | 'little-endian';
   wordOrder?: 'big-endian' | 'little-endian';
+  talkerId?: string;
+  sentenceIntervalMs?: number;
 }
 
 export interface DeviceDefinition {
@@ -54,6 +64,7 @@ export interface DeviceProtocolBinding {
   type: ProtocolType;
   serverId: string;
   slaveId?: number;
+  talkerId?: string;
 }
 
 export interface ParameterDefinition {
@@ -63,6 +74,7 @@ export interface ParameterDefinition {
   unit?: string;
   generator: GeneratorDefinition;
   mapping?: RegisterMapping;
+  nmeaMapping?: NmeaFieldMapping;
   faults?: FaultDefinition[];
 }
 

@@ -88,6 +88,9 @@ function validateSemanticRules(config: SimulatorConfig): void {
       );
     }
 
+    const protocol = config.protocols.find((entry) => entry.id === device.protocol.serverId);
+    const isNmeaDevice = device.protocol.type === 'nmea0183' || protocol?.type === 'nmea0183';
+
     const parameterIds = new Set<string>();
     for (const parameter of device.parameters) {
       if (parameterIds.has(parameter.parameterId)) {
@@ -96,6 +99,27 @@ function validateSemanticRules(config: SimulatorConfig): void {
         );
       }
       parameterIds.add(parameter.parameterId);
+
+      const hasMapping = Boolean(parameter.mapping);
+      const hasNmeaMapping = Boolean(parameter.nmeaMapping);
+      if (hasMapping && hasNmeaMapping) {
+        throw new ConfigError(
+          `Parameter ${parameter.parameterId} in device ${device.deviceId} cannot have both mapping and nmeaMapping`
+        );
+      }
+      if (isNmeaDevice) {
+        if (!hasNmeaMapping) {
+          throw new ConfigError(
+            `NMEA device ${device.deviceId} parameter ${parameter.parameterId} requires nmeaMapping`
+          );
+        }
+        continue;
+      }
+      if (!hasMapping) {
+        throw new ConfigError(
+          `Modbus device ${device.deviceId} parameter ${parameter.parameterId} requires mapping`
+        );
+      }
 
       if (parameter.mapping) {
         const length = parameter.mapping.length ?? registerLength(parameter.dataType, parameter.mapping.registerType);
