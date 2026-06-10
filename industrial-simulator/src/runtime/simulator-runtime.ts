@@ -54,7 +54,7 @@ export class SimulatorRuntime {
       const healthServer = this.healthServer;
       this.healthServer = undefined;
       // Forcefully close all active connections
-      healthServer.closeAllConnections();
+      (healthServer as any).closeAllConnections();
       await new Promise<void>((resolve, reject) => {
         healthServer.close((error) => (error ? reject(error) : resolve()));
       });

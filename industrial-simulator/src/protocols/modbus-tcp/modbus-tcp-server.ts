@@ -51,7 +51,7 @@ export class ModbusTcpServer implements ProtocolServer {
     this.server = undefined;
     
     // Forcefully close all active connections
-    server.closeAllConnections();
+    (server as any).closeAllConnections();
     
     // Clear socket tracking
     this.sockets.clear();
