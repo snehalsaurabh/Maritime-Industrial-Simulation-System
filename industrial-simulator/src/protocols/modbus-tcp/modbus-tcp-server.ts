@@ -13,6 +13,7 @@ const READ_INPUT_REGISTERS = 4;
 export class ModbusTcpServer implements ProtocolServer {
   private server: Server | undefined;
   private readonly buffers = new WeakMap<Socket, Buffer>();
+  private readonly sockets = new Set<Socket>();
 
   constructor(
     private readonly config: ProtocolServerConfig,
@@ -26,7 +27,12 @@ export class ModbusTcpServer implements ProtocolServer {
     }
     const host = this.config.host ?? '0.0.0.0';
     const port = this.config.port ?? 502;
-    this.server = createServer((socket) => this.handleSocket(socket));
+    this.server = createServer((socket) => {
+      this.sockets.add(socket);
+      socket.on('close', () => this.sockets.delete(socket));
+      socket.on('error', () => this.sockets.delete(socket));
+      this.handleSocket(socket);
+    });
     await new Promise<void>((resolve, reject) => {
       this.server?.once('error', reject);
       this.server?.listen(port, host, () => {
@@ -38,6 +44,10 @@ export class ModbusTcpServer implements ProtocolServer {
   }
 
   async stop(): Promise<void> {
+    for (const socket of this.sockets) {
+      socket.destroy();
+    }
+    this.sockets.clear();
     if (!this.server) {
       return;
     }
