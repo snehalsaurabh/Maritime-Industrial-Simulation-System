@@ -50,13 +50,15 @@ export class SimulatorRuntime {
     for (const server of this.protocolServers) {
       await server.stop();
     }
-    await new Promise<void>((resolve, reject) => {
-      if (!this.healthServer) {
-        resolve();
-        return;
-      }
-      this.healthServer.close((error) => (error ? reject(error) : resolve()));
-    });
+    if (this.healthServer) {
+      const healthServer = this.healthServer;
+      this.healthServer = undefined;
+      // Forcefully close all active connections
+      healthServer.closeAllConnections();
+      await new Promise<void>((resolve, reject) => {
+        healthServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
   }
 
   getStats(): RuntimeStats {

@@ -44,15 +44,19 @@ export class ModbusTcpServer implements ProtocolServer {
   }
 
   async stop(): Promise<void> {
-    for (const socket of this.sockets) {
-      socket.destroy();
-    }
-    this.sockets.clear();
     if (!this.server) {
       return;
     }
     const server = this.server;
     this.server = undefined;
+    
+    // Forcefully close all active connections
+    server.closeAllConnections();
+    
+    // Clear socket tracking
+    this.sockets.clear();
+    
+    // Close the server
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
