@@ -29,6 +29,15 @@ Run from source:
 npm run dev
 ```
 
+Open the Device Definition Studio (visual editor):
+
+```bash
+cd industrial-simulator
+npm run studio
+```
+
+See [industrial-simulator/docs/device-definition-studio.md](industrial-simulator/docs/device-definition-studio.md) for the full Studio user guide.
+
 ## V1 Capabilities
 
 - JSON and YAML configuration.
@@ -36,6 +45,8 @@ npm run dev
 - Simulation models: static, random, linear ramp, sine wave, sawtooth, square wave, replay, and opt-in sandboxed arithmetic scripts.
 - Faults: freeze, timeout, drift, spike, noise, and offline.
 - Modbus TCP protocol plugin with holding registers, input registers, coils, discrete inputs, multiple slave IDs, and configurable port.
+- NMEA0183 TCP protocol plugin with GGA, RMC, and GSV sentence generation.
+- Device Definition Studio desktop UI for editing devices, parameters, and live runtime monitoring.
 - Local health endpoints when `simulator.healthPort` is configured: `/health` and `/stats`.
 
 ## Boundary

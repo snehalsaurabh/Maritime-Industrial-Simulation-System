@@ -4,6 +4,9 @@ import type { FSWatcher } from 'chokidar';
 import { dirname } from 'node:path';
 import type { ProtocolPlugin, ProtocolServer } from '../protocols/core/protocol-server.js';
 import { modbusTcpPlugin } from '../protocols/modbus-tcp/plugin.js';
+import { nmea0183Plugin } from '../protocols/nmea0183/plugin.js';
+import { NmeaTcpServer } from '../protocols/nmea0183/nmea-tcp-server.js';
+import type { NmeaSentenceSnapshot } from '../protocols/nmea0183/sentence-builder.js';
 import { DeviceRegistry } from '../devices/device-registry.js';
 import { loadConfig } from '../config/loader.js';
 import type { ParameterValue, RuntimeStats, SimulatorConfig } from '../domain/types.js';
@@ -11,7 +14,7 @@ import { ParameterRegistry } from '../parameters/parameter-registry.js';
 import { SimulationEngine } from '../simulation/simulation-engine.js';
 
 export class SimulatorRuntime {
-  private readonly plugins: ProtocolPlugin[] = [modbusTcpPlugin];
+  private readonly plugins: ProtocolPlugin[] = [modbusTcpPlugin, nmea0183Plugin];
   private readonly deviceRegistry = new DeviceRegistry();
   private readonly parameterRegistry = new ParameterRegistry();
   private protocolServers: ProtocolServer[] = [];
@@ -71,6 +74,12 @@ export class SimulatorRuntime {
 
   getConfig(): SimulatorConfig | undefined {
     return this.config;
+  }
+
+  listNmeaSentences(): NmeaSentenceSnapshot[] {
+    return this.protocolServers.flatMap((server) =>
+      server instanceof NmeaTcpServer ? server.getLastEmitted() : []
+    );
   }
 
   private async applyConfig(config: SimulatorConfig): Promise<void> {

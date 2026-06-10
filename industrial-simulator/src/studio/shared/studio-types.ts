@@ -3,11 +3,13 @@ import type {
   DeviceDefinition,
   FaultDefinition,
   GeneratorDefinition,
+  NmeaFieldMapping,
   ParameterDefinition,
   ProtocolServerConfig,
   RegisterMapping,
   SimulatorConfig
 } from '../../domain/types.js';
+import { createNmeaParameters } from './nmea-templates.js';
 
 export interface StudioProject {
   version: 1;
@@ -25,9 +27,10 @@ export interface StudioDeviceDefinition extends Omit<DeviceDefinition, 'paramete
   notes?: string;
 }
 
-export interface StudioParameterDefinition extends Omit<ParameterDefinition, 'generator' | 'mapping' | 'faults'> {
+export interface StudioParameterDefinition extends Omit<ParameterDefinition, 'generator' | 'mapping' | 'nmeaMapping' | 'faults'> {
   generator: GeneratorDefinition;
-  mapping: RegisterMapping;
+  mapping?: RegisterMapping;
+  nmeaMapping?: NmeaFieldMapping;
   faults?: FaultDefinition[];
   plausibleMin?: number;
   plausibleMax?: number;
@@ -63,6 +66,7 @@ export interface StudioRuntimeSnapshot {
   };
   values: StudioLiveValue[];
   registers: StudioRegisterRow[];
+  sentences: StudioSentenceRow[];
 }
 
 export interface StudioLiveValue {
@@ -87,6 +91,13 @@ export interface StudioRegisterRow {
   quality: string;
 }
 
+export interface StudioSentenceRow {
+  deviceId: string;
+  sentenceType: string;
+  line: string;
+  timestamp: string;
+}
+
 export interface StudioApi {
   loadProject(): Promise<StudioProject>;
   saveProject(project: StudioProject): Promise<{ savedAt: string }>;
@@ -94,6 +105,104 @@ export interface StudioApi {
   startSimulator(project: StudioProject): Promise<StudioRuntimeSnapshot>;
   stopSimulator(): Promise<StudioRuntimeSnapshot>;
   getRuntimeSnapshot(project: StudioProject): Promise<StudioRuntimeSnapshot>;
+}
+
+export function protocolById(protocols: ProtocolServerConfig[], serverId: string): ProtocolServerConfig | undefined {
+  return protocols.find((protocol) => protocol.id === serverId);
+}
+
+export function isNmeaDevice(device: StudioDeviceDefinition, protocols: ProtocolServerConfig[]): boolean {
+  if (device.protocol.type === 'nmea0183') {
+    return true;
+  }
+  const protocol = protocolById(protocols, device.protocol.serverId);
+  return protocol?.type === 'nmea0183';
+}
+
+export function createModbusParameter(parameterId: string, address: number): StudioParameterDefinition {
+  return {
+    parameterId,
+    displayName: parameterId.replaceAll('-', ' '),
+    dataType: 'float32',
+    unit: '',
+    plausibleMin: 0,
+    plausibleMax: 100,
+    generator: { type: 'random', min: 0, max: 100 },
+    mapping: { registerType: 'holding-register', address }
+  };
+}
+
+export function createNmeaDevice(
+  deviceId: string,
+  displayName: string,
+  serverId: string,
+  talkerId = 'GP'
+): StudioDeviceDefinition {
+  return {
+    deviceId,
+    deviceType: 'gps',
+    displayName,
+    notes: 'NMEA 0183 GPS receiver with fixed GGA, RMC, and GSV sentence parameters.',
+    protocol: {
+      type: 'nmea0183',
+      serverId,
+      talkerId
+    },
+    parameters: createNmeaParameters()
+  };
+}
+
+export function applyProtocolServerChange(
+  device: StudioDeviceDefinition,
+  serverId: string,
+  protocols: ProtocolServerConfig[]
+): void {
+  const protocol = protocolById(protocols, serverId);
+  if (!protocol) {
+    return;
+  }
+
+  device.protocol.serverId = serverId;
+  device.protocol.type = protocol.type;
+
+  if (protocol.type === 'nmea0183') {
+    device.protocol.slaveId = undefined;
+    device.protocol.talkerId = device.protocol.talkerId ?? protocol.talkerId ?? 'GP';
+    device.deviceType = device.deviceType === 'generic-device' ? 'gps' : device.deviceType;
+    device.parameters = createNmeaParameters();
+    return;
+  }
+
+  device.protocol.talkerId = undefined;
+  device.protocol.slaveId = device.protocol.slaveId ?? 1;
+  if (device.parameters.every((parameter) => parameter.nmeaMapping)) {
+    device.parameters = [createModbusParameter('value', 0)];
+  }
+}
+
+export function ensureStudioProtocols(protocols: ProtocolServerConfig[]): ProtocolServerConfig[] {
+  const next = [...protocols];
+  if (!next.some((protocol) => protocol.id === 'modbus-main')) {
+    next.unshift({
+      id: 'modbus-main',
+      type: 'modbus-tcp',
+      host: '127.0.0.1',
+      port: 5020,
+      byteOrder: 'big-endian',
+      wordOrder: 'big-endian'
+    });
+  }
+  if (!next.some((protocol) => protocol.id === 'nmea-gps')) {
+    next.push({
+      id: 'nmea-gps',
+      type: 'nmea0183',
+      host: '127.0.0.1',
+      port: 10110,
+      talkerId: 'GP',
+      sentenceIntervalMs: 1000
+    });
+  }
+  return next;
 }
 
 export function createDefaultStudioProject(): StudioProject {
@@ -106,16 +215,7 @@ export function createDefaultStudioProject(): StudioProject {
       scriptGeneratorsEnabled: false,
       healthPort: 8088
     },
-    protocols: [
-      {
-        id: 'modbus-main',
-        type: 'modbus-tcp',
-        host: '127.0.0.1',
-        port: 5020,
-        byteOrder: 'big-endian',
-        wordOrder: 'big-endian'
-      }
-    ],
+    protocols: ensureStudioProtocols([]),
     devices: [
       {
         deviceId: 'main-engine-01',
@@ -170,26 +270,45 @@ export function createDefaultStudioProject(): StudioProject {
   };
 }
 
+export function normalizeStudioProject(project: StudioProject): StudioProject {
+  return {
+    ...project,
+    protocols: ensureStudioProtocols(project.protocols)
+  };
+}
+
 export function compileSimulatorConfig(project: StudioProject): SimulatorConfig {
+  const activeScenarios = project.scenarios.filter((s) => s.enabled);
+  const activeFaults = activeScenarios.flatMap((s) =>
+    s.faults.map((f) => ({ ...f, enabled: true }))
+  );
+
   return {
     simulator: project.simulator,
     protocols: project.protocols,
-    devices: project.devices.map((device) => ({
-      deviceId: device.deviceId,
-      deviceType: device.deviceType,
-      displayName: device.displayName,
-      updateIntervalMs: device.updateIntervalMs,
-      protocol: device.protocol,
-      faults: device.faults,
-      parameters: device.parameters.map((parameter) => ({
-        parameterId: parameter.parameterId,
-        displayName: parameter.displayName,
-        dataType: parameter.dataType,
-        unit: parameter.unit,
-        generator: parameter.generator,
-        mapping: parameter.mapping,
-        faults: parameter.faults
-      }))
-    }))
+    devices: project.devices.map((device) => {
+      const deviceFaults = [
+        ...(device.faults ?? []),
+        ...activeFaults
+      ];
+      return {
+        deviceId: device.deviceId,
+        deviceType: device.deviceType,
+        displayName: device.displayName,
+        updateIntervalMs: device.updateIntervalMs,
+        protocol: device.protocol,
+        faults: deviceFaults.length > 0 ? deviceFaults : undefined,
+        parameters: device.parameters.map((parameter) => ({
+          parameterId: parameter.parameterId,
+          displayName: parameter.displayName,
+          dataType: parameter.dataType,
+          unit: parameter.unit,
+          generator: parameter.generator,
+          mapping: parameter.mapping,
+          nmeaMapping: parameter.nmeaMapping,
+          faults: parameter.faults
+        }))
+      };
+    })
   };
 }

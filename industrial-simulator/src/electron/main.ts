@@ -10,6 +10,7 @@ import { SimulatorRuntime } from '../runtime/simulator-runtime.js';
 import {
   compileSimulatorConfig,
   createDefaultStudioProject,
+  normalizeStudioProject,
   type StudioProject,
   type StudioRegisterRow,
   type StudioRuntimeSnapshot
@@ -80,7 +81,9 @@ function exportedConfigPath(): string {
 async function loadProject(): Promise<StudioProject> {
   try {
     const raw = await readFile(projectPath(), 'utf8');
-    return JSON.parse(raw) as StudioProject;
+    const project = normalizeStudioProject(JSON.parse(raw) as StudioProject);
+    await saveProject(project);
+    return project;
   } catch {
     const project = createDefaultStudioProject();
     await saveProject(project);
@@ -147,7 +150,13 @@ function snapshot(project: StudioProject): StudioRuntimeSnapshot {
       quality: value.quality,
       timestamp: value.timestamp.toISOString()
     })),
-    registers: buildRegisterRows(project, values)
+    registers: buildRegisterRows(project, values),
+    sentences: runtime?.listNmeaSentences().map((sentence) => ({
+      deviceId: sentence.deviceId,
+      sentenceType: sentence.sentenceType,
+      line: sentence.line,
+      timestamp: sentence.timestamp
+    })) ?? []
   };
 }
 
@@ -160,6 +169,9 @@ function buildRegisterRows(project: StudioProject, values: ParameterValue[]): St
 
   for (const device of project.devices) {
     for (const parameter of device.parameters) {
+      if (!parameter.mapping) {
+        continue;
+      }
       const value = valueMap.get(`${device.deviceId}:${parameter.parameterId}`);
       rows.push({
         serverId: device.protocol.serverId,

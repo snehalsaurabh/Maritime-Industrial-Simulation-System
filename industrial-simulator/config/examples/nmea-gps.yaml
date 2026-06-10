@@ -1,0 +1,559 @@
+simulator:
+  updateIntervalMs: 1000
+  healthPort: 8088
+
+protocols:
+  - id: nmea-gps
+    type: nmea0183
+    host: 127.0.0.1
+    port: 10110
+    talkerId: GP
+    sentenceIntervalMs: 1000
+
+devices:
+  - deviceId: gps-receiver-01
+    deviceType: gps
+    displayName: GPS Receiver 01
+    protocol:
+      type: nmea0183
+      serverId: nmea-gps
+      talkerId: GP
+    parameters:
+      - parameterId: gga.utcTime
+        displayName: UTC Time
+        dataType: string
+        generator:
+          type: static
+          value: '210230'
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: utcTime
+      - parameterId: gga.latitude
+        displayName: Latitude
+        dataType: float64
+        generator:
+          type: static
+          value: 38.924145
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: latitude
+      - parameterId: gga.latitudeHemisphere
+        displayName: Latitude Hemisphere
+        dataType: string
+        generator:
+          type: static
+          value: N
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: latitudeHemisphere
+      - parameterId: gga.longitude
+        displayName: Longitude
+        dataType: float64
+        generator:
+          type: static
+          value: -94.766785
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: longitude
+      - parameterId: gga.longitudeHemisphere
+        displayName: Longitude Hemisphere
+        dataType: string
+        generator:
+          type: static
+          value: W
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: longitudeHemisphere
+      - parameterId: gga.fixQuality
+        displayName: Fix Quality
+        dataType: uint16
+        generator:
+          type: static
+          value: 1
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: fixQuality
+      - parameterId: gga.satellitesUsed
+        displayName: Satellites Used
+        dataType: uint16
+        generator:
+          type: static
+          value: 7
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: satellitesUsed
+      - parameterId: gga.hdop
+        displayName: HDOP
+        dataType: float32
+        generator:
+          type: static
+          value: 1.1
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: hdop
+      - parameterId: gga.altitude
+        displayName: Altitude
+        dataType: float32
+        generator:
+          type: static
+          value: 370.5
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: altitude
+      - parameterId: gga.geoidSeparation
+        displayName: Geoid Separation
+        dataType: float32
+        generator:
+          type: static
+          value: -29.5
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: geoidSeparation
+      - parameterId: gga.dgpsAge
+        displayName: DGPS Age
+        dataType: string
+        generator:
+          type: static
+          value: ''
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: dgpsAge
+      - parameterId: gga.dgpsStationId
+        displayName: DGPS Station ID
+        dataType: string
+        generator:
+          type: static
+          value: ''
+        nmeaMapping:
+          sentence: GGA
+          fieldKey: dgpsStationId
+      - parameterId: rmc.utcTime
+        displayName: UTC Time
+        dataType: string
+        generator:
+          type: static
+          value: '210230'
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: utcTime
+      - parameterId: rmc.status
+        displayName: Status
+        dataType: string
+        generator:
+          type: static
+          value: A
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: status
+      - parameterId: rmc.latitude
+        displayName: Latitude
+        dataType: float64
+        generator:
+          type: static
+          value: 38.924145
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: latitude
+      - parameterId: rmc.latitudeHemisphere
+        displayName: Latitude Hemisphere
+        dataType: string
+        generator:
+          type: static
+          value: N
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: latitudeHemisphere
+      - parameterId: rmc.longitude
+        displayName: Longitude
+        dataType: float64
+        generator:
+          type: static
+          value: -94.766785
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: longitude
+      - parameterId: rmc.longitudeHemisphere
+        displayName: Longitude Hemisphere
+        dataType: string
+        generator:
+          type: static
+          value: W
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: longitudeHemisphere
+      - parameterId: rmc.speedKnots
+        displayName: Speed (knots)
+        dataType: float32
+        generator:
+          type: linear-ramp
+          min: 0
+          max: 15
+          step: 0.5
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: speedKnots
+      - parameterId: rmc.courseOverGround
+        displayName: Course Over Ground
+        dataType: float32
+        generator:
+          type: static
+          value: 76.2
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: courseOverGround
+      - parameterId: rmc.date
+        displayName: Date
+        dataType: string
+        generator:
+          type: static
+          value: '130495'
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: date
+      - parameterId: rmc.magneticVariation
+        displayName: Magnetic Variation
+        dataType: float32
+        generator:
+          type: static
+          value: 3.8
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: magneticVariation
+      - parameterId: rmc.magneticVariationHemisphere
+        displayName: Mag Var Hemisphere
+        dataType: string
+        generator:
+          type: static
+          value: E
+        nmeaMapping:
+          sentence: RMC
+          fieldKey: magneticVariationHemisphere
+      - parameterId: gsv.totalSatellitesInView
+        displayName: Total Satellites In View
+        dataType: uint16
+        generator:
+          type: static
+          value: 8
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: totalSatellitesInView
+      - parameterId: gsv.sat1.prn
+        displayName: Sat 1 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 2
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 1
+      - parameterId: gsv.sat1.elevation
+        displayName: Sat 1 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 74
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 1
+      - parameterId: gsv.sat1.azimuth
+        displayName: Sat 1 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 42
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 1
+      - parameterId: gsv.sat1.snr
+        displayName: Sat 1 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 45
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 1
+      - parameterId: gsv.sat2.prn
+        displayName: Sat 2 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 4
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 2
+      - parameterId: gsv.sat2.elevation
+        displayName: Sat 2 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 18
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 2
+      - parameterId: gsv.sat2.azimuth
+        displayName: Sat 2 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 190
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 2
+      - parameterId: gsv.sat2.snr
+        displayName: Sat 2 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 36
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 2
+      - parameterId: gsv.sat3.prn
+        displayName: Sat 3 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 7
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 3
+      - parameterId: gsv.sat3.elevation
+        displayName: Sat 3 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 67
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 3
+      - parameterId: gsv.sat3.azimuth
+        displayName: Sat 3 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 279
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 3
+      - parameterId: gsv.sat3.snr
+        displayName: Sat 3 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 42
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 3
+      - parameterId: gsv.sat4.prn
+        displayName: Sat 4 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 12
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 4
+      - parameterId: gsv.sat4.elevation
+        displayName: Sat 4 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 29
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 4
+      - parameterId: gsv.sat4.azimuth
+        displayName: Sat 4 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 323
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 4
+      - parameterId: gsv.sat4.snr
+        displayName: Sat 4 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 36
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 4
+      - parameterId: gsv.sat5.prn
+        displayName: Sat 5 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 15
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 5
+      - parameterId: gsv.sat5.elevation
+        displayName: Sat 5 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 30
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 5
+      - parameterId: gsv.sat5.azimuth
+        displayName: Sat 5 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 50
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 5
+      - parameterId: gsv.sat5.snr
+        displayName: Sat 5 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 47
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 5
+      - parameterId: gsv.sat6.prn
+        displayName: Sat 6 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 19
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 6
+      - parameterId: gsv.sat6.elevation
+        displayName: Sat 6 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 9
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 6
+      - parameterId: gsv.sat6.azimuth
+        displayName: Sat 6 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 158
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 6
+      - parameterId: gsv.sat6.snr
+        displayName: Sat 6 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 0
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 6
+      - parameterId: gsv.sat7.prn
+        displayName: Sat 7 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 26
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 7
+      - parameterId: gsv.sat7.elevation
+        displayName: Sat 7 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 12
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 7
+      - parameterId: gsv.sat7.azimuth
+        displayName: Sat 7 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 281
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 7
+      - parameterId: gsv.sat7.snr
+        displayName: Sat 7 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 40
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 7
+      - parameterId: gsv.sat8.prn
+        displayName: Sat 8 PRN
+        dataType: uint16
+        generator:
+          type: static
+          value: 27
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: prn
+          satelliteSlot: 8
+      - parameterId: gsv.sat8.elevation
+        displayName: Sat 8 Elevation
+        dataType: uint16
+        generator:
+          type: static
+          value: 38
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: elevation
+          satelliteSlot: 8
+      - parameterId: gsv.sat8.azimuth
+        displayName: Sat 8 Azimuth
+        dataType: uint16
+        generator:
+          type: static
+          value: 173
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: azimuth
+          satelliteSlot: 8
+      - parameterId: gsv.sat8.snr
+        displayName: Sat 8 SNR
+        dataType: uint16
+        generator:
+          type: static
+          value: 41
+        nmeaMapping:
+          sentence: GSV
+          fieldKey: snr
+          satelliteSlot: 8

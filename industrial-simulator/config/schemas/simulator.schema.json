@@ -28,7 +28,9 @@
           "host": { "type": "string" },
           "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
           "byteOrder": { "enum": ["big-endian", "little-endian"] },
-          "wordOrder": { "enum": ["big-endian", "little-endian"] }
+          "wordOrder": { "enum": ["big-endian", "little-endian"] },
+          "talkerId": { "type": "string", "minLength": 2, "maxLength": 2 },
+          "sentenceIntervalMs": { "type": "integer", "minimum": 100 }
         }
       }
     },
@@ -51,7 +53,8 @@
             "properties": {
               "type": { "type": "string", "minLength": 1 },
               "serverId": { "type": "string", "minLength": 1 },
-              "slaveId": { "type": "integer", "minimum": 1, "maximum": 247 }
+              "slaveId": { "type": "integer", "minimum": 1, "maximum": 247 },
+              "talkerId": { "type": "string", "minLength": 2, "maxLength": 2 }
             }
           },
           "faults": { "$ref": "#/$defs/faults" },
@@ -176,6 +179,16 @@
                     },
                     "address": { "type": "integer", "minimum": 0 },
                     "length": { "type": "integer", "minimum": 1 }
+                  }
+                },
+                "nmeaMapping": {
+                  "type": "object",
+                  "required": ["sentence", "fieldKey"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "sentence": { "enum": ["GGA", "RMC", "GSV"] },
+                    "fieldKey": { "type": "string", "minLength": 1 },
+                    "satelliteSlot": { "type": "integer", "minimum": 1, "maximum": 8 }
                   }
                 },
                 "faults": { "$ref": "#/$defs/faults" }
