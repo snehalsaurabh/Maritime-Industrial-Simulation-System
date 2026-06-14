@@ -1317,10 +1317,11 @@ function faultValue(fault: FaultDefinition): number {
 }
 
 function slug(value: string): string {
-  if(value == " ") {
+  const trimmed = value.trim();
+  if(trimmed == "") {
     return "";
   }
-  return value
+  return trimmed
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
