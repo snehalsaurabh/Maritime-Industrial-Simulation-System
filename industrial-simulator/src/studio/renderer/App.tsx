@@ -37,8 +37,22 @@ import {
 
 type Tab = 'device' | 'profiles' | 'faults' | 'runtime';
 
-const dataTypes: DataType[] = ['int16', 'uint16', 'int32', 'uint32', 'float32', 'float64', 'boolean', 'string'];
-const registerTypes: RegisterType[] = ['holding-register', 'input-register', 'coil', 'discrete-input'];
+const dataTypes: DataType[] = [
+  'int16',
+  'uint16',
+  'int32',
+  'uint32',
+  'float32',
+  'float64',
+  'boolean',
+  'string'
+];
+const registerTypes: RegisterType[] = [
+  'holding-register',
+  'input-register',
+  'coil',
+  'discrete-input'
+];
 const generatorTypes: GeneratorDefinition['type'][] = [
   'static',
   'random',
@@ -47,7 +61,14 @@ const generatorTypes: GeneratorDefinition['type'][] = [
   'square-wave',
   'sawtooth'
 ];
-const faultTypes: FaultDefinition['type'][] = ['freeze', 'timeout', 'drift', 'spike', 'noise', 'offline'];
+const faultTypes: FaultDefinition['type'][] = [
+  'freeze',
+  'timeout',
+  'drift',
+  'spike',
+  'noise',
+  'offline'
+];
 const talkerIds = ['GP', 'GN', 'GL'];
 const fallbackApi = {
   loadProject: async () => createDefaultStudioProject(),
@@ -67,28 +88,38 @@ export function App(): JSX.Element {
   const [status, setStatus] = useState('Loading studio project');
 
   const selectedDevice = useMemo(
-    () => project.devices.find((device) => device.deviceId === selectedDeviceId) ?? project.devices[0],
+    () =>
+      project.devices.find((device) => device.deviceId === selectedDeviceId) ?? project.devices[0],
     [project.devices, selectedDeviceId]
   );
   const selectedParameter = useMemo(
-    () => selectedDevice?.parameters.find((parameter) => parameter.parameterId === selectedParameterId) ?? selectedDevice?.parameters[0],
+    () =>
+      selectedDevice?.parameters.find(
+        (parameter) => parameter.parameterId === selectedParameterId
+      ) ?? selectedDevice?.parameters[0],
     [selectedDevice, selectedParameterId]
   );
 
   useEffect(() => {
-    void api().loadProject().then((loaded) => {
-      setProject(loaded);
-      setSelectedDeviceId(loaded.devices[0]?.deviceId ?? '');
-      setSelectedParameterId(loaded.devices[0]?.parameters[0]?.parameterId ?? '');
-      setStatus(`Loaded ${loaded.devices.length} device definition(s)`);
-    }).catch((error: unknown) => {
-      setStatus(`Project load failed: ${error instanceof Error ? error.message : String(error)}`);
-    });
+    void api()
+      .loadProject()
+      .then((loaded) => {
+        setProject(loaded);
+        setSelectedDeviceId(loaded.devices[0]?.deviceId ?? '');
+        setSelectedParameterId(loaded.devices[0]?.parameters[0]?.parameterId ?? '');
+        setStatus(`Loaded ${loaded.devices.length} device definition(s)`);
+      })
+      .catch((error: unknown) => {
+        setStatus(`Project load failed: ${error instanceof Error ? error.message : String(error)}`);
+      });
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void api().getRuntimeSnapshot(project).then(setSnapshot).catch(() => undefined);
+      void api()
+        .getRuntimeSnapshot(project)
+        .then(setSnapshot)
+        .catch(() => undefined);
     }, 1000);
     return () => window.clearInterval(timer);
   }, [project]);
@@ -113,7 +144,9 @@ export function App(): JSX.Element {
 
   function updateParameter(mutator: (parameter: StudioParameterDefinition) => void): void {
     updateDevice((device) => {
-      const parameter = device.parameters.find((candidate) => candidate.parameterId === selectedParameterId);
+      const parameter = device.parameters.find(
+        (candidate) => candidate.parameterId === selectedParameterId
+      );
       if (parameter) {
         mutator(parameter);
       }
@@ -144,7 +177,8 @@ export function App(): JSX.Element {
   function addModbusDevice(): void {
     const index = project.devices.length + 1;
     const deviceId = `device-${index.toString().padStart(2, '0')}`;
-    const modbusServer = project.protocols.find((protocol) => protocol.type === 'modbus-tcp')?.id ?? 'modbus-main';
+    const modbusServer =
+      project.protocols.find((protocol) => protocol.type === 'modbus-tcp')?.id ?? 'modbus-main';
     updateProject((draft) => {
       draft.devices.push({
         deviceId,
@@ -161,7 +195,8 @@ export function App(): JSX.Element {
   function addNmeaDevice(): void {
     const index = project.devices.length + 1;
     const deviceId = `gps-${index.toString().padStart(2, '0')}`;
-    const nmeaServer = project.protocols.find((protocol) => protocol.type === 'nmea0183')?.id ?? 'nmea-gps';
+    const nmeaServer =
+      project.protocols.find((protocol) => protocol.type === 'nmea0183')?.id ?? 'nmea-gps';
     const device = createNmeaDevice(deviceId, `GPS Receiver ${index}`, nmeaServer);
     updateProject((draft) => {
       draft.devices.push(device);
@@ -203,9 +238,13 @@ export function App(): JSX.Element {
     if (selectedDevice.parameters.length <= 1) {
       return;
     }
-    const remaining = selectedDevice.parameters.filter((parameter) => parameter.parameterId !== parameterId);
+    const remaining = selectedDevice.parameters.filter(
+      (parameter) => parameter.parameterId !== parameterId
+    );
     updateDevice((device) => {
-      device.parameters = device.parameters.filter((parameter) => parameter.parameterId !== parameterId);
+      device.parameters = device.parameters.filter(
+        (parameter) => parameter.parameterId !== parameterId
+      );
     });
     if (selectedParameterId === parameterId) {
       setSelectedParameterId(remaining[0]?.parameterId ?? '');
@@ -258,7 +297,11 @@ export function App(): JSX.Element {
               Stop
             </button>
           ) : (
-            <button className="primary" onClick={() => void startSimulator()} title="Start simulator">
+            <button
+              className="primary"
+              onClick={() => void startSimulator()}
+              title="Start simulator"
+            >
               <Play size={18} />
               Start
             </button>
@@ -268,27 +311,51 @@ export function App(): JSX.Element {
 
       <section className="status-strip">
         <Metric label="Devices" value={snapshot?.stats.devices ?? project.devices.length} />
-        <Metric label="Parameters" value={snapshot?.stats.parameters ?? project.devices.reduce((sum, device) => sum + device.parameters.length, 0)} />
+        <Metric
+          label="Parameters"
+          value={
+            snapshot?.stats.parameters ??
+            project.devices.reduce((sum, device) => sum + device.parameters.length, 0)
+          }
+        />
         <Metric label="Ticks" value={snapshot?.stats.ticks ?? 0} />
         <Metric label="Protocol Requests" value={snapshot?.stats.protocolRequests ?? 0} />
-        <span className={snapshot?.running ? 'runtime-state running' : 'runtime-state'}>{snapshot?.running ? 'Running' : 'Stopped'}</span>
+        <span className={snapshot?.running ? 'runtime-state running' : 'runtime-state'}>
+          {snapshot?.running ? 'Running' : 'Stopped'}
+        </span>
       </section>
 
       <section className="workspace">
         <aside className="rail">
-          <button className={tab === 'device' ? 'active' : ''} onClick={() => setTab('device')} title="Devices">
+          <button
+            className={tab === 'device' ? 'active' : ''}
+            onClick={() => setTab('device')}
+            title="Devices"
+          >
             <Gauge size={18} />
             Devices
           </button>
-          <button className={tab === 'profiles' ? 'active' : ''} onClick={() => setTab('profiles')} title="Profiles">
+          <button
+            className={tab === 'profiles' ? 'active' : ''}
+            onClick={() => setTab('profiles')}
+            title="Profiles"
+          >
             <Waves size={18} />
             Profiles
           </button>
-          <button className={tab === 'faults' ? 'active' : ''} onClick={() => setTab('faults')} title="Fault scenarios">
+          <button
+            className={tab === 'faults' ? 'active' : ''}
+            onClick={() => setTab('faults')}
+            title="Fault scenarios"
+          >
             <AlertTriangle size={18} />
             Faults
           </button>
-          <button className={tab === 'runtime' ? 'active' : ''} onClick={() => setTab('runtime')} title="Runtime">
+          <button
+            className={tab === 'runtime' ? 'active' : ''}
+            onClick={() => setTab('runtime')}
+            title="Runtime"
+          >
             <Activity size={18} />
             Runtime
           </button>
@@ -312,9 +379,23 @@ export function App(): JSX.Element {
             removeParameter={removeParameter}
           />
         )}
-        {tab === 'profiles' && <ProfilesWorkspace project={project} updateProject={updateProject} addProfile={addProfile} />}
-        {tab === 'faults' && <FaultsWorkspace project={project} updateProject={updateProject} addScenario={addScenario} />}
-        {tab === 'runtime' && <RuntimeWorkspace snapshot={snapshot} project={project} updateProject={updateProject} />}
+        {tab === 'profiles' && (
+          <ProfilesWorkspace
+            project={project}
+            updateProject={updateProject}
+            addProfile={addProfile}
+          />
+        )}
+        {tab === 'faults' && (
+          <FaultsWorkspace
+            project={project}
+            updateProject={updateProject}
+            addScenario={addScenario}
+          />
+        )}
+        {tab === 'runtime' && (
+          <RuntimeWorkspace snapshot={snapshot} project={project} updateProject={updateProject} />
+        )}
       </section>
       <footer>{status}</footer>
     </main>
@@ -397,7 +478,9 @@ function DeviceWorkspace(props: {
             return (
               <div
                 key={device.deviceId}
-                className={device.deviceId === selectedDeviceId ? 'list-row-item active' : 'list-row-item'}
+                className={
+                  device.deviceId === selectedDeviceId ? 'list-row-item active' : 'list-row-item'
+                }
               >
                 <button
                   className="list-row"
@@ -427,30 +510,80 @@ function DeviceWorkspace(props: {
         <PaneTitle icon={<Settings size={18} />} title="Device Details" />
         {selectedDevice && (
           <div className="form-grid">
-            <TextField label="Device ID" value={selectedDevice.deviceId} onChange={(value) => {
-              const nextId = slug(value);
-              updateDevice((device) => { device.deviceId = nextId; });
-              setSelectedDeviceId(nextId);
-            }} />
-            <TextField label="Display Name" value={selectedDevice.displayName ?? ''} onChange={(value) => updateDevice((device) => { device.displayName = value; })} />
-            <TextField label="Device Type" value={selectedDevice.deviceType ?? ''} onChange={(value) => updateDevice((device) => { device.deviceType = slug(value); })} />
+            <TextField
+              label="Device ID"
+              value={selectedDevice.deviceId}
+              placeholder={"Enter a Device Id"}
+              onChange={(value) => {
+                const nextId = slug(value);
+                updateDevice((device) => {
+                  device.deviceId = nextId;
+                });
+                setSelectedDeviceId(nextId);
+              }}
+            />
+            <TextField
+              label="Display Name"
+              placeholder={"Enter a Display Name"}
+              value={selectedDevice.displayName ?? ''}
+              onChange={(value) =>
+                updateDevice((device) => {
+                  device.displayName = value;
+                })
+              }
+            />
+            <TextField
+              label="Device Type"
+              placeholder={"Enter a Device Type"}
+              value={selectedDevice.deviceType ?? ''}
+              onChange={(value) =>
+                updateDevice((device) => {
+                  device.deviceType = slug(value);
+                })
+              }
+            />
             <SelectField
               label="Protocol Server"
               value={selectedDevice.protocol.serverId}
               options={project.protocols.map((protocol) => protocol.id)}
-              onChange={(value) => updateDevice((device) => applyProtocolServerChange(device, value, project.protocols))}
+              onChange={(value) =>
+                updateDevice((device) =>
+                  applyProtocolServerChange(device, value, project.protocols)
+                )
+              }
             />
             {nmeaSelected ? (
               <SelectField
                 label="Talker ID"
                 value={selectedDevice.protocol.talkerId ?? 'GP'}
                 options={talkerIds}
-                onChange={(value) => updateDevice((device) => { device.protocol.talkerId = value; })}
+                onChange={(value) =>
+                  updateDevice((device) => {
+                    device.protocol.talkerId = value;
+                  })
+                }
               />
             ) : (
-              <NumberField label="Slave ID" value={selectedDevice.protocol.slaveId ?? 1} onChange={(value) => updateDevice((device) => { device.protocol.slaveId = value; })} />
+              <NumberField
+                label="Slave ID"
+                value={selectedDevice.protocol.slaveId ?? 1}
+                onChange={(value) =>
+                  updateDevice((device) => {
+                    device.protocol.slaveId = value;
+                  })
+                }
+              />
             )}
-            <TextField label="Notes" value={selectedDevice.notes ?? ''} onChange={(value) => updateDevice((device) => { device.notes = value; })} />
+            <TextField
+              label="Notes"
+              placeholder={"Enter Notes"}
+              value={selectedDevice.notes ?? ''}
+              onChange={(value) =>
+                updateDevice((device) => {
+                  device.notes = value;
+                })
+              }
+            />
           </div>
         )}
       </section>
@@ -470,9 +603,16 @@ function DeviceWorkspace(props: {
             return (
               <div
                 key={parameter.parameterId}
-                className={parameter.parameterId === selectedParameterId ? 'list-row-item active' : 'list-row-item'}
+                className={
+                  parameter.parameterId === selectedParameterId
+                    ? 'list-row-item active'
+                    : 'list-row-item'
+                }
               >
-                <button className="list-row" onClick={() => setSelectedParameterId(parameter.parameterId)}>
+                <button
+                  className="list-row"
+                  onClick={() => setSelectedParameterId(parameter.parameterId)}
+                >
                   <strong>{parameter.displayName || parameter.parameterId}</strong>
                   <span>{subtitle}</span>
                 </button>
@@ -502,37 +642,147 @@ function DeviceWorkspace(props: {
                 <ReadOnlyField label="Sentence" value={selectedParameter.nmeaMapping.sentence} />
                 <ReadOnlyField label="Field" value={selectedParameter.nmeaMapping.fieldKey} />
                 {selectedParameter.nmeaMapping.satelliteSlot !== undefined && (
-                  <ReadOnlyField label="Satellite Slot" value={String(selectedParameter.nmeaMapping.satelliteSlot)} />
+                  <ReadOnlyField
+                    label="Satellite Slot"
+                    value={String(selectedParameter.nmeaMapping.satelliteSlot)}
+                  />
                 )}
               </>
             ) : (
               <>
-                <TextField label="Parameter ID" value={selectedParameter.parameterId} onChange={(value) => {
-                  const nextId = slug(value);
-                  updateParameter((parameter) => { parameter.parameterId = nextId; });
-                  setSelectedParameterId(nextId);
-                }} />
-                <SelectField label="Datatype" value={selectedParameter.dataType} options={dataTypes} onChange={(value) => updateParameter((parameter) => { parameter.dataType = value as DataType; })} />
-                <SelectField label="Register Type" value={selectedParameter.mapping?.registerType ?? 'holding-register'} options={registerTypes} onChange={(value) => updateParameter((parameter) => {
-                  parameter.mapping = parameter.mapping ?? { registerType: 'holding-register', address: 0 };
-                  parameter.mapping.registerType = value as RegisterType;
-                })} />
-                <NumberField label="Address" value={selectedParameter.mapping?.address ?? 0} onChange={(value) => updateParameter((parameter) => {
-                  parameter.mapping = parameter.mapping ?? { registerType: 'holding-register', address: 0 };
-                  parameter.mapping.address = value;
-                })} />
+                <TextField
+                  label="Parameter ID"
+                  placeholder={'Enter Parameter Id'}
+                  value={selectedParameter.parameterId}
+                  onChange={(value) => {
+                    const nextId = slug(value);
+                    updateParameter((parameter) => {
+                      parameter.parameterId = nextId;
+                    });
+                    setSelectedParameterId(nextId);
+                  }}
+                />
+                <SelectField
+                  label="Datatype"
+                  value={selectedParameter.dataType}
+                  options={dataTypes}
+                  onChange={(value) =>
+                    updateParameter((parameter) => {
+                      parameter.dataType = value as DataType;
+                    })
+                  }
+                />
+                <SelectField
+                  label="Register Type"
+                  value={selectedParameter.mapping?.registerType ?? 'holding-register'}
+                  options={registerTypes}
+                  onChange={(value) =>
+                    updateParameter((parameter) => {
+                      parameter.mapping = parameter.mapping ?? {
+                        registerType: 'holding-register',
+                        address: 0
+                      };
+                      parameter.mapping.registerType = value as RegisterType;
+                    })
+                  }
+                />
+                <NumberField
+                  label="Address"
+                  value={selectedParameter.mapping?.address ?? 0}
+                  onChange={(value) =>
+                    updateParameter((parameter) => {
+                      parameter.mapping = parameter.mapping ?? {
+                        registerType: 'holding-register',
+                        address: 0
+                      };
+                      parameter.mapping.address = value;
+                    })
+                  }
+                />
               </>
             )}
-            <TextField label="Display Name" value={selectedParameter.displayName ?? ''} onChange={(value) => updateParameter((parameter) => { parameter.displayName = value; })} />
+            <TextField
+              label="Display Name"
+              placeholder={"Enter Parameter Display Name"}
+              value={selectedParameter.displayName ?? ''}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  parameter.displayName = value;
+                })
+              }
+            />
             {!selectedParameter.nmeaMapping && (
-              <TextField label="Unit" value={selectedParameter.unit ?? ''} onChange={(value) => updateParameter((parameter) => { parameter.unit = value; })} />
+              <TextField
+                label="Unit"
+                placeholder={"Enter a Parameter Unit"}
+                value={selectedParameter.unit ?? ''}
+                onChange={(value) =>
+                  updateParameter((parameter) => {
+                    parameter.unit = value;
+                  })
+                }
+              />
             )}
-            <NumberField label="Plausible Min" value={selectedParameter.plausibleMin ?? 0} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMin = value; applyLimits(parameter); })} />
-            <NumberField label="Plausible Max" value={selectedParameter.plausibleMax ?? 100} onChange={(value) => updateParameter((parameter) => { parameter.plausibleMax = value; applyLimits(parameter); })} />
-            <SelectField label="Generator" value={selectedParameter.generator.type} options={generatorTypes} onChange={(value) => updateParameter((parameter) => { parameter.generator = createGenerator(value as GeneratorDefinition['type'], parameter); })} />
-            <NumberField label="Gen Min / Value" value={generatorNumber(selectedParameter.generator, 'min')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'min', value); })} />
-            <NumberField label="Gen Max / Offset" value={generatorNumber(selectedParameter.generator, 'max')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'max', value); })} />
-            <NumberField label="Step / Period" value={generatorNumber(selectedParameter.generator, 'step')} onChange={(value) => updateParameter((parameter) => { setGeneratorNumber(parameter.generator, 'step', value); })} />
+            <NumberField
+              label="Plausible Min"
+              value={selectedParameter.plausibleMin ?? 0}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  parameter.plausibleMin = value;
+                  applyLimits(parameter);
+                })
+              }
+            />
+            <NumberField
+              label="Plausible Max"
+              value={selectedParameter.plausibleMax ?? 100}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  parameter.plausibleMax = value;
+                  applyLimits(parameter);
+                })
+              }
+            />
+            <SelectField
+              label="Generator"
+              value={selectedParameter.generator.type}
+              options={generatorTypes}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  parameter.generator = createGenerator(
+                    value as GeneratorDefinition['type'],
+                    parameter
+                  );
+                })
+              }
+            />
+            <NumberField
+              label="Gen Min / Value"
+              value={generatorNumber(selectedParameter.generator, 'min')}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  setGeneratorNumber(parameter.generator, 'min', value);
+                })
+              }
+            />
+            <NumberField
+              label="Gen Max / Offset"
+              value={generatorNumber(selectedParameter.generator, 'max')}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  setGeneratorNumber(parameter.generator, 'max', value);
+                })
+              }
+            />
+            <NumberField
+              label="Step / Period"
+              value={generatorNumber(selectedParameter.generator, 'step')}
+              onChange={(value) =>
+                updateParameter((parameter) => {
+                  setGeneratorNumber(parameter.generator, 'step', value);
+                })
+              }
+            />
           </div>
         )}
       </section>
@@ -547,15 +797,51 @@ function ProfilesWorkspace(props: {
 }): JSX.Element {
   return (
     <section className="pane full">
-      <PaneTitle icon={<Waves size={18} />} title="Simulation Profile UI" action="Add" onAction={props.addProfile} />
+      <PaneTitle
+        icon={<Waves size={18} />}
+        title="Simulation Profile UI"
+        action="Add"
+        onAction={props.addProfile}
+      />
       <div className="table">
-        <div className="table-head profile-grid"><span>ID</span><span>Name</span><span>Devices</span><span>Enabled</span></div>
+        <div className="table-head profile-grid">
+          <span>ID</span>
+          <span>Name</span>
+          <span>Devices</span>
+          <span>Enabled</span>
+        </div>
         {props.project.profiles.map((profile, index) => (
           <div className="table-row profile-grid" key={profile.profileId}>
-            <input value={profile.profileId} onChange={(event) => updateProfile(props.updateProject, index, { profileId: slug(event.target.value) })} />
-            <input value={profile.displayName} onChange={(event) => updateProfile(props.updateProject, index, { displayName: event.target.value })} />
-            <input value={profile.deviceIds.join(', ')} onChange={(event) => updateProfile(props.updateProject, index, { deviceIds: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })} />
-            <input type="checkbox" checked={profile.enabled} onChange={(event) => updateProfile(props.updateProject, index, { enabled: event.target.checked })} />
+            <input
+              value={profile.profileId}
+              onChange={(event) =>
+                updateProfile(props.updateProject, index, { profileId: slug(event.target.value) })
+              }
+            />
+            <input
+              value={profile.displayName}
+              onChange={(event) =>
+                updateProfile(props.updateProject, index, { displayName: event.target.value })
+              }
+            />
+            <input
+              value={profile.deviceIds.join(', ')}
+              onChange={(event) =>
+                updateProfile(props.updateProject, index, {
+                  deviceIds: event.target.value
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                })
+              }
+            />
+            <input
+              type="checkbox"
+              checked={profile.enabled}
+              onChange={(event) =>
+                updateProfile(props.updateProject, index, { enabled: event.target.checked })
+              }
+            />
           </div>
         ))}
       </div>
@@ -570,20 +856,64 @@ function FaultsWorkspace(props: {
 }): JSX.Element {
   return (
     <section className="pane full">
-      <PaneTitle icon={<AlertTriangle size={18} />} title="Fault Scenario UI" action="Add" onAction={props.addScenario} />
+      <PaneTitle
+        icon={<AlertTriangle size={18} />}
+        title="Fault Scenario UI"
+        action="Add"
+        onAction={props.addScenario}
+      />
       <div className="table">
-        <div className="table-head fault-grid"><span>ID</span><span>Name</span><span>Fault</span><span>Enabled</span><span>Value</span></div>
+        <div className="table-head fault-grid">
+          <span>ID</span>
+          <span>Name</span>
+          <span>Fault</span>
+          <span>Enabled</span>
+          <span>Value</span>
+        </div>
         {props.project.scenarios.map((scenario, index) => {
           const fault = scenario.faults[0] ?? { type: 'noise', enabled: true, amplitude: 1 };
           return (
             <div className="table-row fault-grid" key={scenario.scenarioId}>
-              <input value={scenario.scenarioId} onChange={(event) => updateScenario(props.updateProject, index, { scenarioId: slug(event.target.value) })} />
-              <input value={scenario.displayName} onChange={(event) => updateScenario(props.updateProject, index, { displayName: event.target.value })} />
-              <select value={fault.type} onChange={(event) => updateScenarioFault(props.updateProject, index, { type: event.target.value as FaultDefinition['type'] })}>
-                {faultTypes.map((type) => <option key={type}>{type}</option>)}
+              <input
+                value={scenario.scenarioId}
+                onChange={(event) =>
+                  updateScenario(props.updateProject, index, {
+                    scenarioId: slug(event.target.value)
+                  })
+                }
+              />
+              <input
+                value={scenario.displayName}
+                onChange={(event) =>
+                  updateScenario(props.updateProject, index, { displayName: event.target.value })
+                }
+              />
+              <select
+                value={fault.type}
+                onChange={(event) =>
+                  updateScenarioFault(props.updateProject, index, {
+                    type: event.target.value as FaultDefinition['type']
+                  })
+                }
+              >
+                {faultTypes.map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
               </select>
-              <input type="checkbox" checked={scenario.enabled} onChange={(event) => updateScenario(props.updateProject, index, { enabled: event.target.checked })} />
-              <input type="number" value={faultValue(fault)} onChange={(event) => updateFaultNumeric(props.updateProject, index, Number(event.target.value))} />
+              <input
+                type="checkbox"
+                checked={scenario.enabled}
+                onChange={(event) =>
+                  updateScenario(props.updateProject, index, { enabled: event.target.checked })
+                }
+              />
+              <input
+                type="number"
+                value={faultValue(fault)}
+                onChange={(event) =>
+                  updateFaultNumeric(props.updateProject, index, Number(event.target.value))
+                }
+              />
             </div>
           );
         })}
@@ -606,33 +936,85 @@ function RuntimeWorkspace(props: {
       <section className="pane form-pane">
         <PaneTitle icon={<Settings size={18} />} title="Runtime Control Panel" />
         <div className="form-grid">
-          <NumberField label="Update Interval" value={props.project.simulator.updateIntervalMs ?? 1000} onChange={(value) => props.updateProject((draft) => { draft.simulator.updateIntervalMs = value; })} />
-          <NumberField label="Health Port" value={props.project.simulator.healthPort ?? 8088} onChange={(value) => props.updateProject((draft) => { draft.simulator.healthPort = value; })} />
-          <TextField label="Modbus Host" value={modbusProtocol?.host ?? '127.0.0.1'} onChange={(value) => props.updateProject((draft) => {
-            const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
-            if (protocol) protocol.host = value;
-          })} />
-          <NumberField label="Modbus Port" value={modbusProtocol?.port ?? 5020} onChange={(value) => props.updateProject((draft) => {
-            const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
-            if (protocol) protocol.port = value;
-          })} />
-          <TextField label="NMEA Host" value={nmeaProtocol?.host ?? '127.0.0.1'} onChange={(value) => props.updateProject((draft) => {
-            const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
-            if (protocol) protocol.host = value;
-          })} />
-          <NumberField label="NMEA Port" value={nmeaProtocol?.port ?? 10110} onChange={(value) => props.updateProject((draft) => {
-            const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
-            if (protocol) protocol.port = value;
-          })} />
+          <NumberField
+            label="Update Interval"
+            value={props.project.simulator.updateIntervalMs ?? 1000}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                draft.simulator.updateIntervalMs = value;
+              })
+            }
+          />
+          <NumberField
+            label="Health Port"
+            value={props.project.simulator.healthPort ?? 8088}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                draft.simulator.healthPort = value;
+              })
+            }
+          />
+          <TextField
+            label="Modbus Host"
+            placeholder={'Enter a valid host '}
+            value={modbusProtocol?.host ?? '127.0.0.1'}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
+                if (protocol) protocol.host = value;
+              })
+            }
+          />
+          <NumberField
+            label="Modbus Port"
+            value={modbusProtocol?.port ?? 5020}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                const protocol = draft.protocols.find((entry) => entry.id === modbusProtocol?.id);
+                if (protocol) protocol.port = value;
+              })
+            }
+          />
+          <TextField
+            label="NMEA Host"
+            placeholder={"Enter a valid host for nmea"}
+            value={nmeaProtocol?.host ?? '127.0.0.1'}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
+                if (protocol) protocol.host = value;
+              })
+            }
+          />
+          <NumberField
+            label="NMEA Port"
+            value={nmeaProtocol?.port ?? 10110}
+            onChange={(value) =>
+              props.updateProject((draft) => {
+                const protocol = draft.protocols.find((entry) => entry.id === nmeaProtocol?.id);
+                if (protocol) protocol.port = value;
+              })
+            }
+          />
         </div>
       </section>
       <section className="pane table-pane">
         <PaneTitle icon={<Activity size={18} />} title="Live Value Viewer" />
         <div className="table">
-          <div className="table-head value-grid"><span>Device</span><span>Parameter</span><span>Value</span><span>Quality</span><span>Timestamp</span></div>
+          <div className="table-head value-grid">
+            <span>Device</span>
+            <span>Parameter</span>
+            <span>Value</span>
+            <span>Quality</span>
+            <span>Timestamp</span>
+          </div>
           {(snapshot?.values ?? []).map((value) => (
             <div className="table-row value-grid" key={`${value.deviceId}:${value.parameterId}`}>
-              <span>{value.deviceId}</span><span>{value.parameterId}</span><strong>{value.value}</strong><span>{value.quality}</span><span>{new Date(value.timestamp).toLocaleTimeString()}</span>
+              <span>{value.deviceId}</span>
+              <span>{value.parameterId}</span>
+              <strong>{value.value}</strong>
+              <span>{value.quality}</span>
+              <span>{new Date(value.timestamp).toLocaleTimeString()}</span>
             </div>
           ))}
         </div>
@@ -640,10 +1022,31 @@ function RuntimeWorkspace(props: {
       <section className="pane table-pane wide">
         <PaneTitle icon={<ListPlus size={18} />} title="Live Register Viewer" />
         <div className="table">
-          <div className="table-head register-grid"><span>Endpoint</span><span>Slave</span><span>Register</span><span>Address</span><span>Parameter</span><span>Value</span><span>Quality</span></div>
+          <div className="table-head register-grid">
+            <span>Endpoint</span>
+            <span>Slave</span>
+            <span>Register</span>
+            <span>Address</span>
+            <span>Parameter</span>
+            <span>Value</span>
+            <span>Quality</span>
+          </div>
           {(snapshot?.registers ?? []).map((row) => (
-            <div className="table-row register-grid" key={`${row.serverId}:${row.slaveId}:${row.registerType}:${row.address}`}>
-              <span>{row.serverId}:{row.port}</span><span>{row.slaveId}</span><span>{row.registerType}</span><span>{row.address}</span><span>{row.deviceId}.{row.parameterId}</span><strong>{row.value}</strong><span>{row.quality}</span>
+            <div
+              className="table-row register-grid"
+              key={`${row.serverId}:${row.slaveId}:${row.registerType}:${row.address}`}
+            >
+              <span>
+                {row.serverId}:{row.port}
+              </span>
+              <span>{row.slaveId}</span>
+              <span>{row.registerType}</span>
+              <span>{row.address}</span>
+              <span>
+                {row.deviceId}.{row.parameterId}
+              </span>
+              <strong>{row.value}</strong>
+              <span>{row.quality}</span>
             </div>
           ))}
         </div>
@@ -651,9 +1054,17 @@ function RuntimeWorkspace(props: {
       <section className="pane table-pane wide sentence-pane">
         <PaneTitle icon={<Waves size={18} />} title="Live NMEA Sentence Viewer" />
         <div className="table">
-          <div className="table-head sentence-grid"><span>Time</span><span>Device</span><span>Type</span><span>Sentence</span></div>
+          <div className="table-head sentence-grid">
+            <span>Time</span>
+            <span>Device</span>
+            <span>Type</span>
+            <span>Sentence</span>
+          </div>
           {(snapshot?.sentences ?? []).map((row, index) => (
-            <div className="table-row sentence-grid" key={`${row.deviceId}:${row.sentenceType}:${index}`}>
+            <div
+              className="table-row sentence-grid"
+              key={`${row.deviceId}:${row.sentenceType}:${index}`}
+            >
               <span>{new Date(row.timestamp).toLocaleTimeString()}</span>
               <span>{row.deviceId}</span>
               <span>{row.sentenceType}</span>
@@ -675,10 +1086,15 @@ function PaneTitle(props: {
 }): JSX.Element {
   return (
     <div className="pane-title">
-      <h2>{props.icon}{props.title}</h2>
+      <h2>
+        {props.icon}
+        {props.title}
+      </h2>
       <div className="pane-title-actions">
         {props.actions?.map((entry) => (
-          <button key={entry.label} onClick={entry.onAction}>{entry.label}</button>
+          <button key={entry.label} onClick={entry.onAction}>
+            {entry.label}
+          </button>
         ))}
         {props.action && <button onClick={props.onAction}>{props.action}</button>}
       </div>
@@ -687,26 +1103,76 @@ function PaneTitle(props: {
 }
 
 function Metric(props: { label: string; value: number }): JSX.Element {
-  return <div className="metric"><span>{props.label}</span><strong>{props.value}</strong></div>;
+  return (
+    <div className="metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </div>
+  );
 }
 
-function TextField(props: { label: string; value: string; onChange: (value: string) => void }): JSX.Element {
-  return <label><span>{props.label}</span><input value={props.value} onChange={(event) => props.onChange(event.target.value)} /></label>;
+function TextField(props: {
+  label: string;
+  value: string;
+  placeholder:string
+  onChange: (value: string) => void;
+}): JSX.Element {
+  return (
+    <label>
+      <span>{props.label}</span>
+      <input value={props.value} placeholder={props.placeholder} onChange={(event) => props.onChange(event.target.value)} />
+    </label>
+  );
 }
 
-function NumberField(props: { label: string; value: number; onChange: (value: number) => void }): JSX.Element {
-  return <label><span>{props.label}</span><input type="number" value={Number.isFinite(props.value) ? props.value : 0} onChange={(event) => props.onChange(Number(event.target.value))} /></label>;
+function NumberField(props: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}): JSX.Element {
+  return (
+    <label>
+      <span>{props.label}</span>
+      <input
+        type="number"
+        value={Number.isFinite(props.value) ? props.value : 0}
+        onChange={(event) => props.onChange(Number(event.target.value))}
+      />
+    </label>
+  );
 }
 
-function SelectField(props: { label: string; value: string; options: string[]; onChange: (value: string) => void }): JSX.Element {
-  return <label><span>{props.label}</span><select value={props.value} onChange={(event) => props.onChange(event.target.value)}>{props.options.map((option) => <option key={option}>{option}</option>)}</select></label>;
+function SelectField(props: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}): JSX.Element {
+  return (
+    <label>
+      <span>{props.label}</span>
+      <select value={props.value} onChange={(event) => props.onChange(event.target.value)}>
+        {props.options.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 function ReadOnlyField(props: { label: string; value: string }): JSX.Element {
-  return <label><span>{props.label}</span><input value={props.value} readOnly /></label>;
+  return (
+    <label>
+      <span>{props.label}</span>
+      <input value={props.value} readOnly />
+    </label>
+  );
 }
 
-function createGenerator(type: GeneratorDefinition['type'], parameter: StudioParameterDefinition): GeneratorDefinition {
+function createGenerator(
+  type: GeneratorDefinition['type'],
+  parameter: StudioParameterDefinition
+): GeneratorDefinition {
   const min = parameter.plausibleMin ?? 0;
   const max = parameter.plausibleMax ?? 100;
   switch (type) {
@@ -741,16 +1207,37 @@ function applyLimits(parameter: StudioParameterDefinition): void {
 
 function generatorNumber(generator: GeneratorDefinition, slot: 'min' | 'max' | 'step'): number {
   if (generator.type === 'static') return Number(generator.value);
-  if (generator.type === 'sine-wave') return slot === 'min' ? generator.amplitude : slot === 'max' ? generator.offset : generator.periodSeconds;
-  if (generator.type === 'square-wave') return slot === 'min' ? generator.low ?? 0 : slot === 'max' ? generator.high ?? 1 : generator.periodSeconds ?? 20;
-  if (generator.type === 'sawtooth') return slot === 'min' ? generator.min ?? 0 : slot === 'max' ? generator.max ?? 100 : generator.periodSeconds ?? 60;
-  if (generator.type === 'linear-ramp') return slot === 'step' ? generator.step : slot === 'min' ? generator.min : generator.max;
-  if (generator.type === 'random') return slot === 'min' ? generator.min : slot === 'max' ? generator.max : 0;
+  if (generator.type === 'sine-wave')
+    return slot === 'min'
+      ? generator.amplitude
+      : slot === 'max'
+        ? generator.offset
+        : generator.periodSeconds;
+  if (generator.type === 'square-wave')
+    return slot === 'min'
+      ? (generator.low ?? 0)
+      : slot === 'max'
+        ? (generator.high ?? 1)
+        : (generator.periodSeconds ?? 20);
+  if (generator.type === 'sawtooth')
+    return slot === 'min'
+      ? (generator.min ?? 0)
+      : slot === 'max'
+        ? (generator.max ?? 100)
+        : (generator.periodSeconds ?? 60);
+  if (generator.type === 'linear-ramp')
+    return slot === 'step' ? generator.step : slot === 'min' ? generator.min : generator.max;
+  if (generator.type === 'random')
+    return slot === 'min' ? generator.min : slot === 'max' ? generator.max : 0;
   if (generator.type === 'script') return generator.initialValue ?? 0;
   return 0;
 }
 
-function setGeneratorNumber(generator: GeneratorDefinition, slot: 'min' | 'max' | 'step', value: number): void {
+function setGeneratorNumber(
+  generator: GeneratorDefinition,
+  slot: 'min' | 'max' | 'step',
+  value: number
+): void {
   if (generator.type === 'static') generator.value = value;
   if (generator.type === 'sine-wave') {
     if (slot === 'min') generator.amplitude = value;
@@ -779,15 +1266,27 @@ function setGeneratorNumber(generator: GeneratorDefinition, slot: 'min' | 'max' 
   if (generator.type === 'script') generator.initialValue = value;
 }
 
-function updateProfile(updateProject: (mutator: (draft: StudioProject) => void) => void, index: number, patch: Partial<SimulationProfile>): void {
+function updateProfile(
+  updateProject: (mutator: (draft: StudioProject) => void) => void,
+  index: number,
+  patch: Partial<SimulationProfile>
+): void {
   updateProject((draft) => Object.assign(draft.profiles[index], patch));
 }
 
-function updateScenario(updateProject: (mutator: (draft: StudioProject) => void) => void, index: number, patch: Partial<FaultScenario>): void {
+function updateScenario(
+  updateProject: (mutator: (draft: StudioProject) => void) => void,
+  index: number,
+  patch: Partial<FaultScenario>
+): void {
   updateProject((draft) => Object.assign(draft.scenarios[index], patch));
 }
 
-function updateScenarioFault(updateProject: (mutator: (draft: StudioProject) => void) => void, index: number, patch: Partial<FaultDefinition>): void {
+function updateScenarioFault(
+  updateProject: (mutator: (draft: StudioProject) => void) => void,
+  index: number,
+  patch: Partial<FaultDefinition>
+): void {
   updateProject((draft) => {
     const fault = draft.scenarios[index]?.faults[0];
     if (fault) {
@@ -796,7 +1295,11 @@ function updateScenarioFault(updateProject: (mutator: (draft: StudioProject) => 
   });
 }
 
-function updateFaultNumeric(updateProject: (mutator: (draft: StudioProject) => void) => void, index: number, value: number): void {
+function updateFaultNumeric(
+  updateProject: (mutator: (draft: StudioProject) => void) => void,
+  index: number,
+  value: number
+): void {
   updateProject((draft) => {
     const fault = draft.scenarios[index]?.faults[0];
     if (!fault) return;
@@ -814,5 +1317,12 @@ function faultValue(fault: FaultDefinition): number {
 }
 
 function slug(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
+  if(value == " ") {
+    return "";
+  }
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
