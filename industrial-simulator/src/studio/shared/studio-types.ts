@@ -216,45 +216,13 @@ export function createDefaultStudioProject(): StudioProject {
       healthPort: 8088
     },
     protocols: ensureStudioProtocols([]),
-    devices: [
-      {
-        deviceId: 'main-engine-01',
-        deviceType: 'engine',
-        displayName: 'Main Engine 01',
-        protocol: {
-          type: 'modbus-tcp',
-          serverId: 'modbus-main',
-          slaveId: 1
-        },
-        parameters: [
-          {
-            parameterId: 'rpm',
-            displayName: 'Engine RPM',
-            dataType: 'float32',
-            unit: 'rpm',
-            plausibleMin: 0,
-            plausibleMax: 1200,
-            decimalPlaces: 1,
-            generator: {
-              type: 'linear-ramp',
-              min: 500,
-              max: 900,
-              step: 10
-            },
-            mapping: {
-              registerType: 'holding-register',
-              address: 0
-            }
-          }
-        ]
-      }
-    ],
+    devices: [],
     profiles: [
       {
         profileId: 'normal-operation',
         displayName: 'Normal Operation',
         description: 'Default operating profile for generated values.',
-        deviceIds: ['main-engine-01'],
+        deviceIds: [],
         enabled: true
       }
     ],

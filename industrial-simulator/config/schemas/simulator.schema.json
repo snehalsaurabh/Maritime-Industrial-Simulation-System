@@ -36,7 +36,7 @@
     },
     "devices": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "type": "object",
         "required": ["deviceId", "protocol", "parameters"],
@@ -60,7 +60,7 @@
           "faults": { "$ref": "#/$defs/faults" },
           "parameters": {
             "type": "array",
-            "minItems": 1,
+            "minItems": 0,
             "items": {
               "type": "object",
               "required": ["parameterId", "dataType", "generator"],

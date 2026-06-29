@@ -12,7 +12,7 @@ import {
   Trash2,
   Waves
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import type {
   DataType,
   FaultDefinition,
@@ -22,6 +22,7 @@ import type {
 import type {
   FaultScenario,
   SimulationProfile,
+  StudioApi,
   StudioDeviceDefinition,
   StudioParameterDefinition,
   StudioProject,
@@ -82,8 +83,8 @@ const fallbackApi = {
 export function App(): JSX.Element {
   const [project, setProject] = useState<StudioProject>(() => createDefaultStudioProject());
   const [snapshot, setSnapshot] = useState<StudioRuntimeSnapshot | undefined>();
-  const [selectedDeviceId, setSelectedDeviceId] = useState('main-engine-01');
-  const [selectedParameterId, setSelectedParameterId] = useState('rpm');
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [selectedParameterId, setSelectedParameterId] = useState('');
   const [tab, setTab] = useState<Tab>('device');
   const [status, setStatus] = useState('Loading studio project');
 
@@ -206,9 +207,6 @@ export function App(): JSX.Element {
   }
 
   function removeDevice(deviceId: string): void {
-    if (project.devices.length <= 1) {
-      return;
-    }
     const remaining = project.devices.filter((device) => device.deviceId !== deviceId);
     updateProject((draft) => {
       draft.devices = draft.devices.filter((device) => device.deviceId !== deviceId);
@@ -233,9 +231,6 @@ export function App(): JSX.Element {
 
   function removeParameter(parameterId: string): void {
     if (!selectedDevice || isNmeaDevice(selectedDevice, project.protocols)) {
-      return;
-    }
-    if (selectedDevice.parameters.length <= 1) {
       return;
     }
     const remaining = selectedDevice.parameters.filter(
@@ -402,7 +397,7 @@ export function App(): JSX.Element {
   );
 }
 
-function api(): typeof window.studioApi {
+function api(): StudioApi {
   return window.studioApi ?? fallbackApi;
 }
 
@@ -495,7 +490,6 @@ function DeviceWorkspace(props: {
                 <button
                   className="list-row-delete"
                   title="Remove device"
-                  disabled={project.devices.length <= 1}
                   onClick={() => removeDevice(device.deviceId)}
                 >
                   <Trash2 size={16} />
@@ -620,7 +614,6 @@ function DeviceWorkspace(props: {
                   <button
                     className="list-row-delete"
                     title="Remove parameter"
-                    disabled={(selectedDevice?.parameters.length ?? 0) <= 1}
                     onClick={() => removeParameter(parameter.parameterId)}
                   >
                     <Trash2 size={16} />
