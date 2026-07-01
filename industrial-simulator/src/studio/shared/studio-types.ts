@@ -148,7 +148,7 @@ export function createNmeaDevice(
       serverId,
       talkerId
     },
-    parameters: createNmeaParameters()
+    parameters: createNmeaParameters(talkerId)
   };
 }
 
@@ -167,9 +167,22 @@ export function applyProtocolServerChange(
 
   if (protocol.type === 'nmea0183') {
     device.protocol.slaveId = undefined;
-    device.protocol.talkerId = device.protocol.talkerId ?? protocol.talkerId ?? 'GP';
-    device.deviceType = device.deviceType === 'generic-device' ? 'gps' : device.deviceType;
-    device.parameters = createNmeaParameters();
+
+    const nextTalker =
+      device.protocol.talkerId ??
+      protocol.talkerId ??
+      'GP';
+
+    device.protocol.talkerId = nextTalker;
+
+    device.deviceType =
+      device.deviceType === 'generic-device'
+        ? 'gps'
+        : device.deviceType;
+
+    device.parameters =
+      createNmeaParameters(nextTalker);
+
     return;
   }
 
@@ -177,6 +190,17 @@ export function applyProtocolServerChange(
   device.protocol.slaveId = device.protocol.slaveId ?? 1;
   if (device.parameters.every((parameter) => parameter.nmeaMapping)) {
     device.parameters = [createModbusParameter('value', 0)];
+  }
+}
+
+export function applyTalkerIdChange(
+  device: StudioDeviceDefinition,
+  talkerId: 'GP' | 'GN' | 'GL' | 'VW' | 'WI' | 'HE' | 'SD' | 'II'
+): void {
+  device.protocol.talkerId = talkerId;
+  if (device.protocol.type === 'nmea0183') {
+    device.parameters =
+      createNmeaParameters(talkerId);
   }
 }
 

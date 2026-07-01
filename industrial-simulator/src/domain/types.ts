@@ -18,7 +18,7 @@ export type RegisterType =
 
 export type ProtocolType = 'modbus-tcp' | 'nmea0183' | string;
 
-export type NmeaSentenceType = 'GGA' | 'RMC' | 'GSV';
+export type NmeaSentenceType = 'GGA' | 'RMC' | 'GSV' | 'VTG' | 'VHW' | 'MWV' | 'HDT' | 'DBT' | 'RSA';
 
 export interface NmeaFieldMapping {
   sentence: NmeaSentenceType;

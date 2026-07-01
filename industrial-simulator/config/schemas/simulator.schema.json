@@ -186,7 +186,9 @@
                   "required": ["sentence", "fieldKey"],
                   "additionalProperties": false,
                   "properties": {
-                    "sentence": { "enum": ["GGA", "RMC", "GSV"] },
+                    "sentence": {
+                      "enum": ["GGA", "RMC", "GSV", "VTG", "VHW", "MWV", "HDT", "DBT", "RSA"]
+                    },
                     "fieldKey": { "type": "string", "minLength": 1 },
                     "satelliteSlot": { "type": "integer", "minimum": 1, "maximum": 8 }
                   }

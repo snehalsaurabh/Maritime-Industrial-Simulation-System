@@ -31,7 +31,17 @@ export function buildDeviceSentences(
 ): NmeaSentenceSnapshot[] {
   const iso = timestamp.toISOString();
   const lines: NmeaSentenceSnapshot[] = [];
-  for (const sentenceType of ['GGA', 'RMC', 'GSV'] as const) {
+  for (const sentenceType of [
+    'GGA',
+    'RMC',
+    'GSV',
+    'VTG',
+    'VHW',
+    'MWV',
+    'HDT',
+    'DBT',
+    'RSA'
+  ] as const) {
     const built = buildSentence(device, registry, talkerId, sentenceType);
     if (Array.isArray(built)) {
       for (const line of built) {
@@ -57,14 +67,38 @@ function buildSentence(
       return buildRmc(device, registry, talkerId);
     case 'GSV':
       return buildGsv(device, registry, talkerId);
+    case 'VTG':
+      return buildVtg(device, registry, talkerId);
+    case 'VHW':
+      return buildVhw(device, registry, talkerId);
+    case 'MWV':
+      return buildMwv(device, registry, talkerId);
+    case 'HDT':
+      return buildHdt(device, registry, talkerId);
+    case 'RSA':
+      return buildRsa(device, registry, talkerId);
+    case 'DBT':
+      return buildDbt(device, registry, talkerId);
   }
 }
 
 function buildGga(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
   const latitude = numberField(device, registry, 'GGA', 'latitude', 0);
   const longitude = numberField(device, registry, 'GGA', 'longitude', 0);
-  const latHem = stringField(device, registry, 'GGA', 'latitudeHemisphere', latitude >= 0 ? 'N' : 'S');
-  const lonHem = stringField(device, registry, 'GGA', 'longitudeHemisphere', longitude >= 0 ? 'E' : 'W');
+  const latHem = stringField(
+    device,
+    registry,
+    'GGA',
+    'latitudeHemisphere',
+    latitude >= 0 ? 'N' : 'S'
+  );
+  const lonHem = stringField(
+    device,
+    registry,
+    'GGA',
+    'longitudeHemisphere',
+    longitude >= 0 ? 'E' : 'W'
+  );
   const lat = formatLatitude(latitude);
   const lon = formatLongitude(longitude);
 
@@ -89,8 +123,20 @@ function buildGga(device: DeviceDefinition, registry: ParameterRegistry, talkerI
 function buildRmc(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
   const latitude = numberField(device, registry, 'RMC', 'latitude', 0);
   const longitude = numberField(device, registry, 'RMC', 'longitude', 0);
-  const latHem = stringField(device, registry, 'RMC', 'latitudeHemisphere', latitude >= 0 ? 'N' : 'S');
-  const lonHem = stringField(device, registry, 'RMC', 'longitudeHemisphere', longitude >= 0 ? 'E' : 'W');
+  const latHem = stringField(
+    device,
+    registry,
+    'RMC',
+    'latitudeHemisphere',
+    latitude >= 0 ? 'N' : 'S'
+  );
+  const lonHem = stringField(
+    device,
+    registry,
+    'RMC',
+    'longitudeHemisphere',
+    longitude >= 0 ? 'E' : 'W'
+  );
   const lat = formatLatitude(latitude);
   const lon = formatLongitude(longitude);
 
@@ -109,20 +155,18 @@ function buildRmc(device: DeviceDefinition, registry: ParameterRegistry, talkerI
   ]);
 }
 
-function buildGsv(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string[] {
+function buildGsv(
+  device: DeviceDefinition,
+  registry: ParameterRegistry,
+  talkerId: string
+): string[] {
   const satellites = collectSatellites(device, registry);
   const totalSatellites = Math.max(
     satellites.length,
     Math.round(numberField(device, registry, 'GSV', 'totalSatellitesInView', satellites.length))
   );
   if (satellites.length === 0) {
-    return [
-      wrapSentence(talkerId, 'GSV', [
-        '1',
-        '1',
-        formatInteger(totalSatellites, 2)
-      ])
-    ];
+    return [wrapSentence(talkerId, 'GSV', ['1', '1', formatInteger(totalSatellites, 2)])];
   }
 
   const chunks = chunkSatellites(satellites, 4);
@@ -140,6 +184,185 @@ function buildGsv(device: DeviceDefinition, registry: ParameterRegistry, talkerI
       ])
     ])
   );
+}
+
+function buildVtg(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const courseOverGround = stringField(device, registry, 'VTG', 'courseOverGround', '');
+
+  const courseOverGroundReference = stringField(
+    device,
+    registry,
+    'VTG',
+    'courseOverGroundReference',
+    'T'
+  );
+
+  const courseOverGroundMagnetic = stringField(
+    device,
+    registry,
+    'VTG',
+    'courseOverGroundMagnetic',
+    ''
+  );
+
+  const courseOverGroundMagneticReference = stringField(
+    device,
+    registry,
+    'VTG',
+    'courseOverGroundMagneticReference',
+    'M'
+  );
+
+  const speedOverGroundKnots = stringField(device, registry, 'VTG', 'speedOverGroundKnots', '');
+
+  const speedOverGroundKnotsUnit = stringField(
+    device,
+    registry,
+    'VTG',
+    'speedOverGroundKnotsUnit',
+    'N'
+  );
+
+  const speedOverGroundKmh = stringField(device, registry, 'VTG', 'speedOverGroundKmh', '');
+
+  const speedOverGroundKmhUnit = stringField(
+    device,
+    registry,
+    'VTG',
+    'speedOverGroundKmhUnit',
+    'K'
+  );
+
+  return wrapSentence(talkerId, 'VTG', [
+    courseOverGround,
+    courseOverGroundReference,
+    courseOverGroundMagnetic,
+    courseOverGroundMagneticReference,
+    speedOverGroundKnots,
+    speedOverGroundKnotsUnit,
+    speedOverGroundKmh,
+    speedOverGroundKmhUnit
+  ]);
+}
+
+function buildVhw(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const headingTrue = stringField(device, registry, 'VHW', 'headingTrue', '');
+
+  const headingTrueReference = stringField(device, registry, 'VHW', 'headingTrueReference', 'T');
+
+  const headingMagnetic = stringField(device, registry, 'VHW', 'headingMagnetic', '');
+
+  const headingMagneticReference = stringField(
+    device,
+    registry,
+    'VHW',
+    'headingMagneticReference',
+    'M'
+  );
+
+  const speedThroughWaterKnots = stringField(device, registry, 'VHW', 'speedThroughWaterKnots', '');
+
+  const speedThroughWaterKnotsUnit = stringField(
+    device,
+    registry,
+    'VHW',
+    'speedThroughWaterKnotsUnit',
+    'N'
+  );
+
+  const speedThroughWaterKmh = stringField(device, registry, 'VHW', 'speedThroughWaterKmh', '');
+
+  const speedThroughWaterKmhUnit = stringField(
+    device,
+    registry,
+    'VHW',
+    'speedThroughWaterKmhUnit',
+    'K'
+  );
+
+  return wrapSentence(talkerId, 'VHW', [
+    headingTrue,
+    headingTrueReference,
+    headingMagnetic,
+    headingMagneticReference,
+    speedThroughWaterKnots,
+    speedThroughWaterKnotsUnit,
+    speedThroughWaterKmh,
+    speedThroughWaterKmhUnit
+  ]);
+}
+
+function buildMwv(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const windDirection = stringField(device, registry, 'MWV', 'windDirection', '');
+
+  const windDirectionReference = stringField(
+    device,
+    registry,
+    'MWV',
+    'windDirectionReference',
+    'T'
+  );
+
+  const windSpeed = stringField(device, registry, 'MWV', 'windSpeed', '');
+
+  const windSpeedUnit = stringField(device, registry, 'MWV', 'windSpeedUnit', 'N');
+
+  const dataStatus = stringField(device, registry, 'MWV', 'dataStatus', 'A');
+
+  return wrapSentence(talkerId, 'MWV', [
+    windDirection,
+    windDirectionReference,
+    windSpeed,
+    windSpeedUnit,
+    dataStatus
+  ]);
+}
+
+function buildHdt(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const headingTrue = stringField(device, registry, 'HDT', 'headingTrue', '');
+
+  const headingReference = stringField(device, registry, 'HDT', 'headingReference', 'T');
+
+  return wrapSentence(talkerId, 'HDT', [headingTrue, headingReference]);
+}
+
+function buildDbt(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const depthFeet = stringField(device, registry, 'DBT', 'depthFeet', '');
+
+  const depthFeetUnit = stringField(device, registry, 'DBT', 'depthFeetUnit', 'f');
+
+  const depthMeters = stringField(device, registry, 'DBT', 'depthMeters', '');
+
+  const depthMetersUnit = stringField(device, registry, 'DBT', 'depthMetersUnit', 'M');
+
+  const depthFathoms = stringField(device, registry, 'DBT', 'depthFathoms', '');
+  const depthFathomsUnit = stringField(device, registry, 'DBT', 'depthFathomsUnit', 'F');
+
+  return wrapSentence(talkerId, 'DBT', [
+    depthFeet,
+    depthFeetUnit,
+    depthMeters,
+    depthMetersUnit,
+    depthFathoms,
+    depthFathomsUnit
+  ]);
+}
+
+function buildRsa(device: DeviceDefinition, registry: ParameterRegistry, talkerId: string): string {
+  const starboardRudderAngle = stringField(device, registry, 'RSA', 'starboardRudderAngle', '');
+
+  const starboardRudderStatus = stringField(device, registry, 'RSA', 'starboardRudderStatus', 'A');
+
+  const portRudderAngle = stringField(device, registry, 'RSA', 'portRudderAngle', '');
+
+  const portRudderStatus = stringField(device, registry, 'RSA', 'portRudderStatus', 'A');
+
+  return wrapSentence(talkerId, 'RSA', [
+    starboardRudderAngle,
+    starboardRudderStatus,
+    portRudderAngle,
+    portRudderStatus
+  ]);
 }
 
 function collectSatellites(device: DeviceDefinition, registry: ParameterRegistry): SatelliteSlot[] {

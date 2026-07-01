@@ -16,7 +16,7 @@ interface NmeaFieldSpec {
   parameterId: string;
   displayName: string;
   fieldKey: string;
-  sentence: 'GGA' | 'RMC' | 'GSV';
+  sentence: 'GGA' | 'RMC' | 'GSV' | 'VTG' | 'VHW' | 'MWV' | 'HDT' | 'DBT' | 'RSA';
   dataType: DataType;
   unit?: string;
   plausibleMin?: number;
@@ -24,117 +24,183 @@ interface NmeaFieldSpec {
   decimalPlaces?: number;
   generator: GeneratorDefinition;
   satelliteSlot?: number;
+  talkerId:'GP'| 'GN'|'GL'|'VW'|'WI'|'HE'|'SD'|'II'
 }
 
-const GGA_FIELDS: NmeaFieldSpec[] = [
-  { parameterId: 'gga.utcTime', displayName: 'UTC Time', fieldKey: 'utcTime', sentence: 'GGA', dataType: 'string', generator: { type: 'static', value: '210230' } },
-  { parameterId: 'gga.latitude', displayName: 'Latitude', fieldKey: 'latitude', sentence: 'GGA', dataType: 'float64', unit: 'deg', plausibleMin: -90, plausibleMax: 90, decimalPlaces: 6, generator: { type: 'static', value: 38.924145 } },
-  { parameterId: 'gga.latitudeHemisphere', displayName: 'Latitude Hemisphere', fieldKey: 'latitudeHemisphere', sentence: 'GGA', dataType: 'string', generator: { type: 'static', value: 'N' } },
-  { parameterId: 'gga.longitude', displayName: 'Longitude', fieldKey: 'longitude', sentence: 'GGA', dataType: 'float64', unit: 'deg', plausibleMin: -180, plausibleMax: 180, decimalPlaces: 6, generator: { type: 'static', value: -94.766785 } },
-  { parameterId: 'gga.longitudeHemisphere', displayName: 'Longitude Hemisphere', fieldKey: 'longitudeHemisphere', sentence: 'GGA', dataType: 'string', generator: { type: 'static', value: 'W' } },
-  { parameterId: 'gga.fixQuality', displayName: 'Fix Quality', fieldKey: 'fixQuality', sentence: 'GGA', dataType: 'uint16', plausibleMin: 0, plausibleMax: 5, generator: { type: 'static', value: 1 } },
-  { parameterId: 'gga.satellitesUsed', displayName: 'Satellites Used', fieldKey: 'satellitesUsed', sentence: 'GGA', dataType: 'uint16', plausibleMin: 0, plausibleMax: 32, generator: { type: 'static', value: 7 } },
-  { parameterId: 'gga.hdop', displayName: 'HDOP', fieldKey: 'hdop', sentence: 'GGA', dataType: 'float32', plausibleMin: 0, plausibleMax: 20, decimalPlaces: 1, generator: { type: 'static', value: 1.1 } },
-  { parameterId: 'gga.altitude', displayName: 'Altitude', fieldKey: 'altitude', sentence: 'GGA', dataType: 'float32', unit: 'm', plausibleMin: -500, plausibleMax: 10000, decimalPlaces: 1, generator: { type: 'static', value: 370.5 } },
-  { parameterId: 'gga.geoidSeparation', displayName: 'Geoid Separation', fieldKey: 'geoidSeparation', sentence: 'GGA', dataType: 'float32', unit: 'm', plausibleMin: -200, plausibleMax: 200, decimalPlaces: 1, generator: { type: 'static', value: -29.5 } },
-  { parameterId: 'gga.dgpsAge', displayName: 'DGPS Age', fieldKey: 'dgpsAge', sentence: 'GGA', dataType: 'string', generator: { type: 'static', value: '' } },
-  { parameterId: 'gga.dgpsStationId', displayName: 'DGPS Station ID', fieldKey: 'dgpsStationId', sentence: 'GGA', dataType: 'string', generator: { type: 'static', value: '' } }
-];
+const TELEMETRY_FIELDS: NmeaFieldSpec[] = [
+  {
+    parameterId: 'dgps.date',
+    displayName: 'Date',
+    fieldKey: 'date',
+    talkerId: 'GP',
+    sentence: 'RMC',
+    dataType: 'string',
+    generator: { type: 'static', value: '130495' }
+  },
 
-const RMC_FIELDS: NmeaFieldSpec[] = [
-  { parameterId: 'rmc.utcTime', displayName: 'UTC Time', fieldKey: 'utcTime', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: '210230' } },
-  { parameterId: 'rmc.status', displayName: 'Status', fieldKey: 'status', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: 'A' } },
-  { parameterId: 'rmc.latitude', displayName: 'Latitude', fieldKey: 'latitude', sentence: 'RMC', dataType: 'float64', unit: 'deg', plausibleMin: -90, plausibleMax: 90, decimalPlaces: 6, generator: { type: 'static', value: 38.924145 } },
-  { parameterId: 'rmc.latitudeHemisphere', displayName: 'Latitude Hemisphere', fieldKey: 'latitudeHemisphere', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: 'N' } },
-  { parameterId: 'rmc.longitude', displayName: 'Longitude', fieldKey: 'longitude', sentence: 'RMC', dataType: 'float64', unit: 'deg', plausibleMin: -180, plausibleMax: 180, decimalPlaces: 6, generator: { type: 'static', value: -94.766785 } },
-  { parameterId: 'rmc.longitudeHemisphere', displayName: 'Longitude Hemisphere', fieldKey: 'longitudeHemisphere', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: 'W' } },
-  { parameterId: 'rmc.speedKnots', displayName: 'Speed (knots)', fieldKey: 'speedKnots', sentence: 'RMC', dataType: 'float32', unit: 'kn', plausibleMin: 0, plausibleMax: 100, decimalPlaces: 1, generator: { type: 'linear-ramp', min: 0, max: 15, step: 0.5 } },
-  { parameterId: 'rmc.courseOverGround', displayName: 'Course Over Ground', fieldKey: 'courseOverGround', sentence: 'RMC', dataType: 'float32', unit: 'deg', plausibleMin: 0, plausibleMax: 360, decimalPlaces: 1, generator: { type: 'static', value: 76.2 } },
-  { parameterId: 'rmc.date', displayName: 'Date', fieldKey: 'date', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: '130495' } },
-  { parameterId: 'rmc.magneticVariation', displayName: 'Magnetic Variation', fieldKey: 'magneticVariation', sentence: 'RMC', dataType: 'float32', unit: 'deg', plausibleMin: 0, plausibleMax: 30, decimalPlaces: 1, generator: { type: 'static', value: 3.8 } },
-  { parameterId: 'rmc.magneticVariationHemisphere', displayName: 'Mag Var Hemisphere', fieldKey: 'magneticVariationHemisphere', sentence: 'RMC', dataType: 'string', generator: { type: 'static', value: 'E' } }
-];
+  {
+    parameterId: 'dgps.localTime',
+    displayName: 'Local Time',
+    fieldKey: 'localTime',
+    talkerId: 'GP',
+    sentence: 'RMC',
+    dataType: 'string',
+    generator: { type: 'static', value: '023230' }
+  },
 
-const GSV_SATELLITE_DEFAULTS = [
-  { prn: 2, elevation: 74, azimuth: 42, snr: 45 },
-  { prn: 4, elevation: 18, azimuth: 190, snr: 36 },
-  { prn: 7, elevation: 67, azimuth: 279, snr: 42 },
-  { prn: 12, elevation: 29, azimuth: 323, snr: 36 },
-  { prn: 15, elevation: 30, azimuth: 50, snr: 47 },
-  { prn: 19, elevation: 9, azimuth: 158, snr: 0 },
-  { prn: 26, elevation: 12, azimuth: 281, snr: 40 },
-  { prn: 27, elevation: 38, azimuth: 173, snr: 41 }
-];
+  {
+    parameterId: 'dgps.gmtTime',
+    displayName: 'GMT Time',
+    fieldKey: 'utcTime',
+    talkerId: 'GP',
+    sentence: 'RMC',
+    dataType: 'string',
+    generator: { type: 'static', value: '210230' }
+  },
 
-function gsvFields(): NmeaFieldSpec[] {
-  const fields: NmeaFieldSpec[] = [
-    {
-      parameterId: 'gsv.totalSatellitesInView',
-      displayName: 'Total Satellites In View',
-      fieldKey: 'totalSatellitesInView',
-      sentence: 'GSV',
-      dataType: 'uint16',
-      plausibleMin: 0,
-      plausibleMax: 32,
-      generator: { type: 'static', value: 8 }
-    }
-  ];
+  {
+    parameterId: 'dgps.localTimeZoneOffset',
+    displayName: 'Local Time Zone Offset',
+    fieldKey: 'localTimeZoneOffset',
+    talkerId: 'GP',
+    sentence: 'RMC',
+    dataType: 'int16',
+    unit: 'hours',
+    generator: { type: 'static', value: 5 }
+  },
 
-  for (let slot = 1; slot <= 8; slot += 1) {
-    const defaults = GSV_SATELLITE_DEFAULTS[slot - 1];
-    fields.push(
-      {
-        parameterId: `gsv.sat${slot}.prn`,
-        displayName: `Sat ${slot} PRN`,
-        fieldKey: 'prn',
-        sentence: 'GSV',
-        satelliteSlot: slot,
-        dataType: 'uint16',
-        plausibleMin: 0,
-        plausibleMax: 99,
-        generator: { type: 'static', value: defaults.prn }
-      },
-      {
-        parameterId: `gsv.sat${slot}.elevation`,
-        displayName: `Sat ${slot} Elevation`,
-        fieldKey: 'elevation',
-        sentence: 'GSV',
-        satelliteSlot: slot,
-        dataType: 'uint16',
-        unit: 'deg',
-        plausibleMin: 0,
-        plausibleMax: 90,
-        generator: { type: 'static', value: defaults.elevation }
-      },
-      {
-        parameterId: `gsv.sat${slot}.azimuth`,
-        displayName: `Sat ${slot} Azimuth`,
-        fieldKey: 'azimuth',
-        sentence: 'GSV',
-        satelliteSlot: slot,
-        dataType: 'uint16',
-        unit: 'deg',
-        plausibleMin: 0,
-        plausibleMax: 359,
-        generator: { type: 'static', value: defaults.azimuth }
-      },
-      {
-        parameterId: `gsv.sat${slot}.snr`,
-        displayName: `Sat ${slot} SNR`,
-        fieldKey: 'snr',
-        sentence: 'GSV',
-        satelliteSlot: slot,
-        dataType: 'uint16',
-        unit: 'dB-Hz',
-        plausibleMin: 0,
-        plausibleMax: 99,
-        generator: { type: 'random', min: 30, max: 50 }
-      }
-    );
+  {
+    parameterId: 'dgps.latitude',
+    displayName: 'Latitude',
+    fieldKey: 'latitude',
+    talkerId: 'GP',
+    sentence: 'GGA',
+    dataType: 'float64',
+    unit: 'deg',
+    generator: { type: 'static', value: 38.924145 }
+  },
+
+  {
+    parameterId: 'dgps.longitude',
+    displayName: 'Longitude',
+    fieldKey: 'longitude',
+    talkerId: 'GP',
+    sentence: 'GGA',
+    dataType: 'float64',
+    unit: 'deg',
+    generator: { type: 'static', value: -94.766785 }
+  },
+
+  {
+    parameterId: 'dgps.courseOverGroundTrue',
+    displayName: 'Course Over Ground (True)',
+    fieldKey: 'courseOverGround',
+    talkerId: 'GP',
+    sentence: 'VTG',
+    dataType: 'float32',
+    unit: 'deg',
+    generator: { type: 'linear-ramp', min: 0, max: 359, step: 1 }
+  },
+
+  {
+    parameterId: 'dgps.courseOverGroundMagnetic',
+    displayName: 'Course Over Ground (Magnetic)',
+    fieldKey: 'courseOverGroundMagnetic',
+    talkerId: 'GP',
+    sentence: 'VTG',
+    dataType: 'float32',
+    unit: 'deg',
+    generator: { type: 'linear-ramp', min: 0, max: 359, step: 1 }
+  },
+
+  {
+    parameterId: 'dgps.speedOverGround',
+    displayName: 'Speed Over Ground',
+    fieldKey: 'speedOverGroundKnots',
+    talkerId: 'GP',
+    sentence: 'VTG',
+    dataType: 'float32',
+    unit: 'kn',
+    generator: { type: 'linear-ramp', min: 0, max: 18, step: 0.5 }
+  },
+
+  {
+    parameterId: 'dgps.timeSinceLastUpdate',
+    displayName: 'Time Since Last DGPS Update',
+    fieldKey: 'timeSinceLastUpdate',
+    talkerId: 'GP',
+    sentence: 'GGA',
+    dataType: 'float32',
+    unit: 's',
+    generator: { type: 'linear-ramp', min: 0, max: 10, step: 1 }
+  },
+
+  {
+    parameterId: 'speedlog.speedThroughWater',
+    displayName: 'Speed Through Water',
+    fieldKey: 'speedThroughWaterKnots',
+    talkerId: 'VW',
+    sentence: 'VHW',
+    dataType: 'float32',
+    unit: 'kn',
+    generator: { type: 'linear-ramp', min: 0, max: 18, step: 0.5 }
+  },
+
+  {
+    parameterId: 'anemometer.windSpeed',
+    displayName: 'Wind Speed',
+    fieldKey: 'windSpeed',
+    talkerId: 'WI',
+    sentence: 'MWV',
+    dataType: 'float32',
+    unit: 'kn',
+    generator: { type: 'linear-ramp', min: 0, max: 60, step: 1 }
+  },
+
+  {
+    parameterId: 'anemometer.windDirection',
+    displayName: 'Wind Direction True',
+    fieldKey: 'windDirection',
+    talkerId: 'WI',
+    sentence: 'MWV',
+    dataType: 'float32',
+    unit: 'deg',
+    generator: { type: 'linear-ramp', min: 0, max: 359, step: 5 }
+  },
+
+  {
+    parameterId: 'gyro.headingTrue',
+    displayName: 'Heading True',
+    fieldKey: 'headingTrue',
+    talkerId: 'HE',
+    sentence: 'HDT',
+    dataType: 'float32',
+    unit: 'deg',
+    generator: { type: 'linear-ramp', min: 0, max: 359, step: 1 }
+  },
+
+  {
+    parameterId: 'echosounder.depthMeters',
+    displayName: 'Depth',
+    fieldKey: 'depthMeters',
+    talkerId: 'SD',
+    sentence: 'DBT',
+    dataType: 'float32',
+    unit: 'm',
+    generator: { type: 'linear-ramp', min: 5, max: 120, step: 0.5 }
+  },
+
+  {
+    parameterId: 'rudder.rudderAngle',
+    displayName: 'Rudder Angle',
+    fieldKey: 'starboardRudderAngle',
+    talkerId: 'II',
+    sentence: 'RSA',
+    dataType: 'float32',
+    unit: 'deg',
+    generator: { type: 'linear-ramp', min: -35, max: 35, step: 1 }
   }
-
-  return fields;
-}
+];
 
 function toParameter(spec: NmeaFieldSpec): NmeaTemplateParameter {
   return {
@@ -154,6 +220,6 @@ function toParameter(spec: NmeaFieldSpec): NmeaTemplateParameter {
   };
 }
 
-export function createNmeaParameters(): NmeaTemplateParameter[] {
-  return [...GGA_FIELDS, ...RMC_FIELDS, ...gsvFields()].map(toParameter);
+export function createNmeaParameters(talkerId:string): NmeaTemplateParameter[] {
+  return [...TELEMETRY_FIELDS].filter(field => field.talkerId === talkerId).map(toParameter); //...gsvFields()
 }

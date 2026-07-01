@@ -30,6 +30,7 @@ import type {
 } from '../shared/studio-types.js';
 import {
   applyProtocolServerChange,
+  applyTalkerIdChange,
   createDefaultStudioProject,
   createModbusParameter,
   createNmeaDevice,
@@ -70,7 +71,7 @@ const faultTypes: FaultDefinition['type'][] = [
   'noise',
   'offline'
 ];
-const talkerIds = ['GP', 'GN', 'GL'];
+const talkerIds = ['GP', 'VW', 'WI', 'HE', 'SD', 'II'];
 const fallbackApi = {
   loadProject: async () => createDefaultStudioProject(),
   saveProject: async () => ({ savedAt: new Date().toISOString() }),
@@ -507,7 +508,7 @@ function DeviceWorkspace(props: {
             <TextField
               label="Device ID"
               value={selectedDevice.deviceId}
-              placeholder={"Enter a Device Id"}
+              placeholder={'Enter a Device Id'}
               onChange={(value) => {
                 const nextId = slug(value);
                 updateDevice((device) => {
@@ -518,7 +519,7 @@ function DeviceWorkspace(props: {
             />
             <TextField
               label="Display Name"
-              placeholder={"Enter a Display Name"}
+              placeholder={'Enter a Display Name'}
               value={selectedDevice.displayName ?? ''}
               onChange={(value) =>
                 updateDevice((device) => {
@@ -528,7 +529,7 @@ function DeviceWorkspace(props: {
             />
             <TextField
               label="Device Type"
-              placeholder={"Enter a Device Type"}
+              placeholder={'Enter a Device Type'}
               value={selectedDevice.deviceType ?? ''}
               onChange={(value) =>
                 updateDevice((device) => {
@@ -553,7 +554,10 @@ function DeviceWorkspace(props: {
                 options={talkerIds}
                 onChange={(value) =>
                   updateDevice((device) => {
-                    device.protocol.talkerId = value;
+                    applyTalkerIdChange(
+                      device,
+                      value as 'GP' | 'GN' | 'GL' | 'VW' | 'WI' | 'HE' | 'SD' | 'II'
+                    );
                   })
                 }
               />
@@ -570,7 +574,7 @@ function DeviceWorkspace(props: {
             )}
             <TextField
               label="Notes"
-              placeholder={"Enter Notes"}
+              placeholder={'Enter Notes'}
               value={selectedDevice.notes ?? ''}
               onChange={(value) =>
                 updateDevice((device) => {
@@ -696,7 +700,7 @@ function DeviceWorkspace(props: {
             )}
             <TextField
               label="Display Name"
-              placeholder={"Enter Parameter Display Name"}
+              placeholder={'Enter Parameter Display Name'}
               value={selectedParameter.displayName ?? ''}
               onChange={(value) =>
                 updateParameter((parameter) => {
@@ -707,7 +711,7 @@ function DeviceWorkspace(props: {
             {!selectedParameter.nmeaMapping && (
               <TextField
                 label="Unit"
-                placeholder={"Enter a Parameter Unit"}
+                placeholder={'Enter a Parameter Unit'}
                 value={selectedParameter.unit ?? ''}
                 onChange={(value) =>
                   updateParameter((parameter) => {
@@ -970,7 +974,7 @@ function RuntimeWorkspace(props: {
           />
           <TextField
             label="NMEA Host"
-            placeholder={"Enter a valid host for nmea"}
+            placeholder={'Enter a valid host for nmea'}
             value={nmeaProtocol?.host ?? '127.0.0.1'}
             onChange={(value) =>
               props.updateProject((draft) => {
@@ -1107,13 +1111,17 @@ function Metric(props: { label: string; value: number }): JSX.Element {
 function TextField(props: {
   label: string;
   value: string;
-  placeholder:string
+  placeholder: string;
   onChange: (value: string) => void;
 }): JSX.Element {
   return (
     <label>
       <span>{props.label}</span>
-      <input value={props.value} placeholder={props.placeholder} onChange={(event) => props.onChange(event.target.value)} />
+      <input
+        value={props.value}
+        placeholder={props.placeholder}
+        onChange={(event) => props.onChange(event.target.value)}
+      />
     </label>
   );
 }
@@ -1311,8 +1319,8 @@ function faultValue(fault: FaultDefinition): number {
 
 function slug(value: string): string {
   const trimmed = value.trim();
-  if(trimmed == "") {
-    return "";
+  if (trimmed == '') {
+    return '';
   }
   return trimmed
     .trim()
